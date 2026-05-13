@@ -1,0 +1,35 @@
+{
+  "$schema_comment": "Hooks that automate verification. The harness executes them, not the agent, so they cannot be bypassed.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -m unittest discover -s tests -q 2>&1 | tail -3",
+            "description": "After editing or writing files, runs the tests and shows the summary."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./init.sh > /tmp/harness_init.log 2>&1 && echo '[harness] init.sh OK' || (echo '[harness] init.sh FAILED — check /tmp/harness_init.log before closing' && cat /tmp/harness_init.log | tail -20)",
+            "description": "Before closing the session, forces a full verification."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./init.sh)",
+      "Bash(python3 -m unittest*)",
+      "Bash(python3 -m src.cli*)"
+    ]
+  }
+}
