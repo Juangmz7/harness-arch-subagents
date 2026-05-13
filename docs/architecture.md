@@ -5,42 +5,41 @@
 
 ## Principles
 
-1. **Clear layers.** The project has three layers and only three:
-   - `storage.py` — persistence (JSON on disk).
-   - `notes.py` — domain model (`Note`).
-   - `cli.py` — user interface (argparse).
-     Do not introduce additional layers (services, repositories, ORMs) until
-     there is a concrete reason documented in `feature_list.json`.
+1. **Clear layers.** The project has strictly three main layers:
+    - `Controller` — Handles HTTP requests, input validation, and API responses.
+    - `Service` — Contains all business domain logic (e.g., calculating totals, verifying stock).
+    - `Repository` — Persistence layer using Spring Data JPA interfaces.
+    - `Model` — Contains all domain entities and custom exceptions.
+      Do not introduce additional structural layers without a concrete reason documented in the project specifications.
 
-2. **No external dependencies.** Python stdlib only. If a feature
-   requires a dependency, it must be discussed first (status `blocked`).
+2. **Managed dependencies.** Rely on the standard Spring Boot ecosystem (Spring Web, Spring Data JPA), Lombok for boilerplate reduction, and MapStruct for mapping. If a feature requires a new external library, it must be discussed first (status `blocked`).
 
-3. **Explicit errors.** Functions that can fail (id doesn't exist,
-   corrupted file) raise named exceptions — they do not return `None`.
+3. **Explicit errors.** Business failures (e.g., product ID doesn't exist, insufficient stock) throw specific custom exceptions (like `ResourceNotFoundException` or `InsufficientStockException`). They do not return `null` or generic internal errors.
 
-4. **Immutability by default.** `Note` is a `@dataclass(frozen=True)`.
-   Modifying = creating a new instance.
+4. **Data isolation.** Database Entities (`Product`, `Order`) are never exposed directly to the outside world. Controllers strictly accept and return Data Transfer Objects (DTOs).
 
-5. **Atomic writes.** Every write to `notes.json` is done first
-   to a temp file, then `os.replace()`. Never leave the file half-written.
+5. **Transactional integrity.** Any operation that modifies data, especially across multiple records (like creating an order and deducting product stock), must be annotated with `@Transactional` at the Service level to guarantee atomicity. Also (readonly = true) to improve queries.
 
 ## Data flow
 
-```
-user  ─→  cli.py (argparse)
-            │
-            ├─ builds Note with notes.Note.new(...)
-            │
-            └─→  storage.load() / storage.save()
+```text
+client  ─→  Controller (@RestController)
+              │
+              ├─ parses request, validates DTOs
+              │
+              └─→  Service (@Service)
                      │
-                     └─→  .notes.json (in CWD)
+                     ├─ executes business logic, maps DTO ↔ Entity
+                     │
+                     └─→  Repository (Spring Data JPA)
+                            │
+                            └─→  Database (H2)
+                         
 ```
 
 ## What NOT to do
 
-- Do not use `print()` for errors. Use `sys.stderr` and a non-zero exit code.
-- Do not mix IO with domain logic inside `notes.py`.
-- Do not read/write the file on each operation inside a loop.
-  Load at the start, modify in memory, save at the end.
-- Do not add a configuration system. The file path is passed
-  explicitly or uses the default constant.
+- Do not put business logic inside the Controller. Controllers exist only to route HTTP traffic and delegate to Services.
+- Do not use field injection (@Autowired on variables). Use constructor injection, ideally via Lombok's @RequiredArgsConstructor.
+- Do not catch exceptions to return generic HTTP 500s. Let exceptions bubble up to a global @ControllerAdvice to ensure standardized, elegant JSON error responses.
+- Do not write manual SQL queries for basic CRUD operations. Rely on Spring Data JPA method naming conventions unless performance dictates otherwise.
