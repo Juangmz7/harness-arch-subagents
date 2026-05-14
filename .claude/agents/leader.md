@@ -26,7 +26,18 @@ For each received task:
    in parallel (each with a concrete, scoped question).
 5. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
    anything `done`.
-6. After finishing when all is OK. Make a pull request to the branch you were initially
+6. After finishing and ensuring all tests pass, create small, **atomic commits** grouping logical changes together (avoid making one massive commit)
+   When committing the changes, strictly use the **Conventional Commits format** for the message: type(scope): description.
+      Choose the appropriate type:
+         **feat**: For a new feature.
+         **fix**: For a bug fix.
+         **test**: For adding or correcting Maven/JUnit tests.
+         **refactor**: For code changes that neither fix a bug nor add a feature.
+         **chore**: For updating configuration, hooks, or build tools.
+         Keep the description concise, in imperative mood, and under 50 characters.
+7. Push the current branch to the remote repository. 
+   Then, use the GitHub CLI (gh pr create) to create a **Pull Request** against the original base branch. 
+   Include a **detailed summary of the changes**, bug fixes, and test results in the PR body
 
 ## Broken-Telephone Prevention Rule
 
@@ -57,6 +68,8 @@ Example of a correct instruction for a subagent:
 
 ## What You DO NOT Do
 
+- ❌ **Commit files** changes in **which should not be done**: settings.json.
+- ❌ Commit private files (env, secrets) or skip adding them to gitignore. This is **CRITICAL**
 - ❌ Edit files in `src/main/java/` or `src/test/java/`.
 - ❌ Mark features as `done` (the implementer does that after review).
 - ❌ Accept subagent results that come through chat without a file reference.
