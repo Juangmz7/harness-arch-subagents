@@ -163,6 +163,31 @@ public class ProductNotFoundException extends DomainException {
 
 The API layer catches domain exceptions via a global `@ControllerAdvice`, logs the error on the server side, and returns an appropriate HTTP Status (e.g., 404, 400) with a standardized JSON payload to the client (e.g., RFC 7807 Problem Details). Never propagate Java stack traces to the user.
 
+## Logging is mandatory for every critical operation. Use SLF4J (log variable named `log`).
+
+Rules:
+- ERROR: caught exceptions and unrecoverable states
+- WARN: degraded behavior, fallbacks, unexpected-but-handled conditions
+- INFO: operation entry/exit for service-layer methods (not repositories)
+- DEBUG: variable state, branch decisions, loop iterations when diagnosing is non-trivial
+
+Forbidden:
+- System.out / System.err
+- Logging inside repository interfaces
+- Log messages without context (e.g., "error occurred" → always include relevant IDs or state)
+
+Example:
+log.info("Creating product: name={}, category={}", product.getName(), product.getCategory());
+log.error("Failed to persist product: id={}", product.getId(), e);
+
 ## Comments
 
-By default, not written inside methods. Only allowed when explaining a non-obvious *why* (e.g., a documented framework workaround, or a highly specific business rule invariant). Class-level JavaDoc is encouraged, but method and variable names should do the rest of the heavy lifting.
+Comments are forbidden by default. No Javadoc, no inline comments, unless one of these conditions is met:
+
+1. A non-obvious business rule that cannot be expressed in a method/variable name
+2. A documented workaround for a framework/library bug (include ticket or link)
+3. A public API intended for external consumers
+
+Class-level Javadoc is only allowed if the class name + package do not fully convey its responsibility.
+
+When in doubt, don't comment. Rename instead.
