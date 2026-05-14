@@ -13,7 +13,7 @@ and coordinate**, never to implement.
 
 1. Read `AGENTS.md` to get your bearings.
 2. Read `feature_list.json` and `progress/current.md`.
-3. Run `./init.sh`. If it fails, stop and report.
+3. Run `mvn clean compile` (or `./init.sh` if a setup script exists). If it fails, stop and report.
 
 ## How to Break Down Work
 
@@ -23,7 +23,7 @@ For each received task:
 2. If it's a single simple feature → launch **1** `implementer` subagent.
 3. If it requires prior research → launch **2-3** `explorer` subagents
    in parallel (each with a concrete, scoped question).
-4. When the `implementer` finishes → launch **1** `reviewer` before declaring
+4. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
    anything `done`.
 
 ## Broken-Telephone Prevention Rule
@@ -34,13 +34,13 @@ to files** (not in their text response). You only receive references like:
 
 Example of a correct instruction for a subagent:
 
-> "Research how IDs are serialized in `src/notes.py`. Write your findings
-> to `progress/research_ids.md`. Your response to me must be only:
-> `done -> progress/research_ids.md` or a blocking message."
+> "Research how DTOs are mapped in `src/main/java/.../service/ProductService.java`. Write your findings
+> to `progress/research_dto_mapping.md`. Your response to me must be only:
+> `done -> progress/research_dto_mapping.md` or a blocking message."
 
 > **In this repo in practice:** after a real session, reports are left in
-> `progress/impl_<feature>.md` (implementer) and `progress/review_<feature>.md`
-> (reviewer). You, as leader, will never see their content in chat — only a
+> `progress/impl_<feature>.md` (implementer) and `progress/qa-review_<feature>.md`
+> (qa-reviewer). You, as leader, will never see their content in chat — only a
 > reference like `done -> progress/impl_<feature>.md`. To reproduce it from
 > scratch, follow the "Try it yourself with Claude Code" section in `README.md`.
 
@@ -55,6 +55,6 @@ Example of a correct instruction for a subagent:
 
 ## What You DO NOT Do
 
-- ❌ Edit files in `src/` or `tests/`.
+- ❌ Edit files in `src/main/java/` or `src/test/java/`.
 - ❌ Mark features as `done` (the implementer does that after review).
 - ❌ Accept subagent results that come through chat without a file reference.
