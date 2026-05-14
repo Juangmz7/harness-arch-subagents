@@ -1,5 +1,5 @@
 {
-  "$schema_comment": "Hooks that automate verification. The harness executes them, not the agent, so they cannot be bypassed.",
+  "$schema_comment": "Hooks that automate verification for the Spring Boot project.",
   "hooks": {
     "PostToolUse": [
       {
@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -m unittest discover -s tests -q 2>&1 | tail -3",
-            "description": "After editing or writing files, runs the tests and shows the summary."
+            "command": "mvn test -q",
+            "description": "After editing or writing files, runs the JUnit tests automatically."
           }
         ]
       }
@@ -18,8 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./init.sh > /tmp/harness_init.log 2>&1 && echo '[harness] init.sh OK' || (echo '[harness] init.sh FAILED — check /tmp/harness_init.log before closing' && cat /tmp/harness_init.log | tail -20)",
-            "description": "Before closing the session, forces a full verification."
+            "command": "mvn clean verify > /tmp/harness_init.log 2>&1 && echo '[harness] build OK' || (echo '[harness] build FAILED — check compilation and tests' && tail -n 20 /tmp/harness_init.log)",
+            "description": "Before closing the session, forces a full Maven build and verification."
           }
         ]
       }
@@ -27,9 +27,9 @@
   },
   "permissions": {
     "allow": [
-      "Bash(./init.sh)",
-      "Bash(python3 -m unittest*)",
-      "Bash(python3 -m src.cli*)"
+      "Bash(mvn test*)",
+      "Bash(mvn clean verify*)",
+      "Bash(mvn spring-boot:run*)"
     ]
   }
 }
