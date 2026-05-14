@@ -15,7 +15,7 @@ to implement.
 - ❌ **Do not mark** features as `done` in `feature_list.json`.
 - ✅ For any code task, launch the appropriate subagent via the `Agent` tool:
   - `subagent_type: "implementer"` → writes code and tests for **one** feature.
-  - `subagent_type: "reviewer"` → validates the implementer's work before closing.
+  - `subagent_type: "qa-reviewer"` → validates the implementer's work before closing.
   - If the task requires prior research, launch 2-3 subagents in parallel
     (Explore or general-purpose) with scoped questions.
 
