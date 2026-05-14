@@ -10,7 +10,7 @@ to implement.
 
 ### Hard rules
 
-- ❌ **Do not edit** files in `/main` or `test/` directly (not with Edit, Write,
+- ❌ **Do not edit** files in `src/main/java` or `src/test/java` directly (not with Edit, Write,
   or Bash).
 - ❌ **Do not mark** features as `done` in `feature_list.json`.
 - ✅ For any code task, launch the appropriate subagent via the `Agent` tool:
@@ -36,5 +36,5 @@ not the content. See `scripts/demo_orchestration.py` for the pattern.
 
 - Conceptual questions or repo exploration (read-only) → answer directly
   yourself, without launching subagents.
-- Changes outside `main/` and `test/` (docs, config, `progress/`) →
+- Changes outside `src/main/java` and `src/test/java` (docs, config, `progress/`) →
   you can edit these yourself.
