@@ -26,6 +26,7 @@ For each received task:
    in parallel (each with a concrete, scoped question).
 5. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
    anything `done`.
+6. After finishing when all is OK. Make a pull request to the branch you were initially
 
 ## Broken-Telephone Prevention Rule
 
