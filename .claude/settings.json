@@ -1,5 +1,27 @@
 {
   "$schema_comment": "Hooks that automate verification for the Spring Boot project.",
+  "agent": {
+    "allow_delegation": true,
+    "subagent_profiles": [
+      {
+        "name": "qa-reviewer",
+        "model": "sonnet",
+        "effort": "high",
+        "permissions": ["read", "write"]
+      },
+      {
+        "name": "implementer",
+        "model": "sonnet",
+        "effort": "medium",
+        "permissions": ["read", "write"]
+      },
+      {
+        "name": "explorer",
+        "model": "haiku",
+        "permissions": ["read", "write"]
+      }
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
