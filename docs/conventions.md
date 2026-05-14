@@ -3,64 +3,166 @@
 > Extreme homogeneity. AI predicts better when the repository looks
 > like itself everywhere.
 
-## Python Style
+## Java & Spring Boot Style
 
-- **Version:** Python 3.9+ (`list[str]` syntax allowed).
-- **Formatting:** PEP 8. Maximum 100 characters per line.
-- **Imports:** stdlib first, then local. One module per line.
-- **Strings:** double quotes `"..."` always. Single quotes only
-  to escape double quotes within a string.
-- **f-strings** for interpolation. No `.format()` or `%`.
+- **Version:** Java 21+ (utilizing modern features like `record` for DTOs and `var` where the type is explicitly clear).
+- **Formatting:** Standard Java style (e.g., Google Java Format). Maximum 120 characters per line.
+- **Imports:** `java.*`/`jakarta.*` first, followed by external dependencies (Spring, Lombok), and finally local project imports. Wildcard imports (`*`) are strictly prohibited.
+- **Strings:** Use `String.format()` for text formatting or SLF4J's `{}` syntax for logging. Avoid excessive string concatenation with `+`.
 
 ## Naming
 
-| Type                    | Convention        | Example               |
-|-------------------------|-------------------|-----------------------|
-| Modules                 | `snake_case`      | `notes.py`            |
-| Classes                 | `PascalCase`      | `Note`                |
-| Functions / variables   | `snake_case`      | `load_notes`          |
-| Constants               | `UPPER_SNAKE`     | `DEFAULT_NOTES_PATH`  |
-| Private                 | `_` prefix        | `_atomic_write`       |
+| Type                 | Convention   | Example                       |
+|----------------------|--------------|-------------------------------|
+| Packages             | `lowercase`  | `com.ecommerce.store.service` |
+| Classes / Interfaces | `PascalCase` | `ProductService`, `Order`     |
+| Methods / Variables  | `camelCase`  | `calculateTotal`, `orderId`   |
+| Constants            | `UPPER_SNAKE`| `MAX_STOCK_LIMIT`             |
+| API Endpoints (URI)  | `kebab-case` | `/api/products/{id}`          |
+
+## Code style
+1. Apply **SOLID principles** and **compose method** for good code quality.
+2. Be **pragmatic** regarding to code abstractions and complexity
+3. Example of good code:
+
+```java
+    public void updatePost(UUID postId, UpdatePostRequest request) throws AccessDeniedException {
+        var post = postRepository.findById(postId)
+        .orElseThrow(() -> new EntityNotFoundException("Post not found: " + postId));
+
+        assertOwnership(post);
+        assertUpdatableStatus(post);
+
+        applyContentChange(post, request.getBody());
+
+        var newlyAddedUserIds = applyTagDiff(post, parseRequestedTagUserIds(request));
+
+        if (!newlyAddedUserIds.isEmpty()) {
+            post.updateStatus(PostStatus.PENDING);
+        }
+
+        postRepository.save(post);
+
+        if (!newlyAddedUserIds.isEmpty()) {
+            messageSender.sendValidateUserBatchCommand(
+                    ValidateUserBatchCommand.byUserIds(post.getId(), newlyAddedUserIds)
+            );
+        }
+
+        log.info("Post {} updated by user {} (added tags: {}, status: {})",
+                postId, post.getUserId(), newlyAddedUserIds.size(), post.getStatus());
+    }
+
+    private void assertOwnership(Post post) throws AccessDeniedException {
+        if (!post.getUserId().equals(getCurrentUserId())) {
+            throw new AccessDeniedException("Post " + post.getId() + " does not belong to the current user");
+        }
+    }
+
+    private void assertUpdatableStatus(Post post) {
+        var status = post.getStatus();
+        if (status == PostStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot update a CANCELLED post");
+        }
+        if (status != PostStatus.PUBLISHED && status != PostStatus.PENDING) {
+            throw new IllegalStateException("Post must be PUBLISHED or PENDING to be updated, was: " + status);
+        }
+    }
+
+    private void applyContentChange(Post post, String newBody) {
+        if (newBody == null || newBody.equals(post.getContent())) {
+            return;
+        }
+        post.setBody(newBody);
+    }
+
+    private Set<UUID> parseRequestedTagUserIds(UpdatePostRequest request) {
+        if (request.getTags() == null) {
+            return Set.of();
+        }
+        return request.getTags().stream()
+                .map(UUID::fromString)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<UUID> applyTagDiff(Post post, Set<UUID> requestedUserIds) {
+        Set<UUID> currentUserIds = post.getTags().stream()
+                .map(PostTag::getTaggedUserId)
+                .collect(Collectors.toSet());
+
+        currentUserIds.stream()
+                .filter(userId -> !requestedUserIds.contains(userId))
+                .forEach(post::removeTagByUserId);
+
+        return requestedUserIds.stream()
+                .filter(userId -> !currentUserIds.contains(userId))
+                .collect(Collectors.toSet());
+    }
+```
+
 
 ## File Structure
 
-Every file in `src/` starts with:
+Every class in `src/main/java/...` follows a strict organizational flow:
 
-```python
-"""One line describing the module's purpose."""
-from __future__ import annotations
+```java
+package com.ecommerce.store.service;
 
-# stdlib imports
-import json
-import os
+// 1. Framework & Library Imports
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-# local imports
-from src.notes import Note
+// 2. Local Imports
+import com.ecommerce.store.repository.ProductRepository;
+import com.ecommerce.store.model.Product;
+
+/**
+ * Brief class-level JavaDoc explaining the domain responsibility.
+ */
+@Service
+@RequiredArgsConstructor
+public class ProductService {
+
+    // 3. Injected Dependencies (private final)
+    private final ProductRepository productRepository;
+
+    // 4. Public Methods
+    @Transactional
+    public void updateStock(...) { ... }
+
+    // 5. Private Helper Methods
+    private void validateStock(...) { ... }
+}
 ```
 
 ## Tests
 
-- One test file per module: `tests/test_<module>.py`.
-- One `Test<Thing>(unittest.TestCase)` class per logical unit.
-- Each test uses a `tempfile.TemporaryDirectory()` and cleans up after itself.
-- Descriptive test names: `test_load_returns_empty_when_file_missing`.
+- One test class per component: `src/test/java/.../<Class>Test.java`.
+- Exclusive use of JUnit 5 and Mockito. For unit tests, use `@ExtendWith(MockitoExtension.class)` and avoid loading the full application context with `@SpringBootTest` unless it is a dedicated integration test.
+- Structure tests using the Arrange-Act-Assert (or Given-When-Then) pattern, separated by blank lines.
+- Descriptive test method names explaining the expected behavior: `shouldThrowExceptionWhenStockIsInsufficient()`.
 
 ## Error Handling
 
-Domain exceptions in `src/notes.py`:
+Domain exceptions should be placed in `src/main/java/.../model/exception/`:
 
-```python
-class NoteError(Exception):
-    """Base for domain errors."""
+```java
+public class DomainException extends RuntimeException {
+    public DomainException(String message) {
+        super(message);
+    }
+}
 
-class NoteNotFound(NoteError):
-    """Raised when a nonexistent note is looked up."""
+public class ProductNotFoundException extends DomainException {
+    public ProductNotFoundException(Long id) {
+        super("Product not found with id: " + id);
+    }
+}
 ```
 
-The CLI catches domain exceptions, prints a message to `stderr`, and exits
-with code 1. Never propagates stack traces to the user.
+The API layer catches domain exceptions via a global `@ControllerAdvice`, logs the error on the server side, and returns an appropriate HTTP Status (e.g., 404, 400) with a standardized JSON payload to the client (e.g., RFC 7807 Problem Details). Never propagate Java stack traces to the user.
 
 ## Comments
 
-By default, **not** written. Only allowed when explaining a non-obvious *why*
-(e.g. documented workaround, subtle invariant). Names should do the rest.
+By default, not written inside methods. Only allowed when explaining a non-obvious *why* (e.g., a documented framework workaround, or a highly specific business rule invariant). Class-level JavaDoc is encouraged, but method and variable names should do the rest of the heavy lifting.
