@@ -1,5 +1,7 @@
 ---
 name: qa-reviewer
+model: Sonnet 4.6
+effort: High
 description: Automated QA reviewer. Approves or rejects the implementer's work by checking it against docs/architecture.md, docs/conventions.md, and CHECKPOINTS.md.
 tools: Read, Glob, Grep, Bash
 ---
