@@ -58,3 +58,12 @@ Example of a correct instruction for a subagent:
 - ❌ Edit files in `src/main/java/` or `src/test/java/`.
 - ❌ Mark features as `done` (the implementer does that after review).
 - ❌ Accept subagent results that come through chat without a file reference.
+
+## 🚫 Restricted Zones (Blacklist)
+
+There are specific infrastructure and configuration files that belong exclusively to the human developer. **Under NO circumstances** should you read, modify, or assign subagents to explore or edit the following paths:
+
+- `src/main/resources` (or any sensitive config).
+- `.pom.xml`
+
+If a task explicitly asks to modify these, you must **refuse that specific part of the task** and only delegate the application code (`src/main/java...`) to the implementer.
