@@ -1,62 +1,73 @@
-# Verification — How to prove the work functions
+# Verification — How to Prove the Work Functions
 
-> Golden rule: **the agent does not say "it works", it proves it**.
+> Golden rule: **the agent doesn't say "it works", it proves it**.
 > Every feature ends with executable evidence, not assertions.
 
 ## Verification Levels
 
-### Level 1 — Unit tests (mandatory)
+### Level 1 — Unit Tests (mandatory for Services)
 
-Every public function in `src/` has at least one test in `tests/` that:
+Every public method in the `Service` layer has at least one test in `src/test/java/...` that:
 
 1. Covers the happy path.
-2. Covers at least one error path if the function can fail.
+2. Covers at least one error path (e.g., throwing a `DomainException`) if the function can fail.
+3. Uses Mockito to mock the `Repository` layer.
 
 Command:
 ```bash
-python3 -m unittest discover -s tests -v
+mvn test
 ```
 
-### Level 2 — CLI integration test (mandatory for UI features)
+### Level 2 — API Integration Test (mandatory for Controllers)
 
-Features that add commands to the CLI are verified by running the real CLI
-against a temporary file:
+Because the project uses an in-memory H2 database, we do not need complex external integration setups. Features that add new endpoints are verified by bringing up the Spring Context with H2 and calling it via `MockMvc`:
 
-```python
-import subprocess, tempfile, os
-with tempfile.TemporaryDirectory() as d:
-    env = {**os.environ, "NOTES_FILE": os.path.join(d, "notes.json")}
-    out = subprocess.check_output(
-        ["python3", "-m", "src.cli", "add", "hello", "--body", "world"],
-        env=env, text=True,
-    )
-    assert "id=" in out
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+class ProductControllerIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void shouldCreateProduct() throws Exception {
+        String jsonPayload = """
+            { "name": "Test Product", "price": 100.0, "stockQuantity": 10 }
+            """;
+
+        mockMvc.perform(post("/api/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonPayload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists());
+    }
+}
 ```
 
-### Level 3 — Manual smoke test (optional but recommended)
+### Level 3 — Manual Smoke Test (optional but recommended)
 
-Before closing the session, run an end-to-end flow with a temporary file
-in `/tmp`:
+Before closing the session, run the application locally (it will use the H2 database automatically) and execute a quick `curl` to verify the endpoint is reachable:
 
 ```bash
-NOTES_FILE=/tmp/notes_demo.json python3 -m src.cli add "test" --body "x"
-NOTES_FILE=/tmp/notes_demo.json python3 -m src.cli list
-rm /tmp/notes_demo.json
+# Terminal 1
+mvn spring-boot:run
+
+# Terminal 2
+curl -X GET http://localhost:8081/api/products
 ```
 
 ## Anti-patterns (do not do)
 
-- ❌ "I added the command, it should work." → missing executable test.
-- ❌ Test that only checks the function doesn't raise an exception. → it must
-  verify the concrete result.
-- ❌ `mock` the filesystem. → use a real `tempfile.TemporaryDirectory()`.
-- ❌ Mark the feature as `done` without running `./init.sh`.
+- ❌ "I added the endpoint, it should work." → missing executable MockMvc test.
+- ❌ Test that only verifies the method doesn't throw an exception. → it must check the concrete HTTP status or JSON response.
+- ❌ `mock` the database for API Integration tests. → use the real in-memory H2 database.
+- ❌ Mark the feature as `done` without passing `mvn clean verify`.
 
-## Final check before closing
+## Final Verification Before Closing
 
 ```bash
-./init.sh           # must finish with [OK] Environment ready
+mvnw clean verify           # must finish with BUILD SUCCESS
 ```
 
-If `./init.sh` is red, do **not** mark anything as `done`. Log the blocker
-in `progress/current.md` with status `blocked` in `feature_list.json`.
+If the build fails or tests are red, do **not** mark anything as `done`. Log the blocker and fix the compilation/test errors before proceeding.
