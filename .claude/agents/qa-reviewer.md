@@ -18,13 +18,13 @@ changes made by the implementers. You do not edit code.
     - Does it respect `docs/architecture.md`? (Strict Controller-Service-Repository layers, no domain logic in controllers, proper use of DTOs).
     - Does it respect `docs/conventions.md`? (Constructor injection over field injection, proper exception handling, naming conventions).
     - Does it have its corresponding JUnit 5 / MockMvc test in `src/test/java/...`?
-4. Run `./mvnw clean verify`. The build must finish successfully (`BUILD SUCCESS`).
+4. Run `mvn clean verify`. The build must finish successfully (`BUILD SUCCESS`).
 5. Go through `CHECKPOINTS.md`. Mark `[x]` for passing items, `[ ]` for failing ones.
 6. Issue verdict.
 
 ## Verdict Format
 
-Your final output is **a single block** written to `progress/review.md`:
+Your final output is **a single block** written to `progress/qa-review.md`:
 
 ```markdown
 # Review — feature <id>
@@ -52,12 +52,12 @@ APPROVED -> see progress/review.md
 or
 
 ```
-CHANGES_REQUESTED -> see progress/review.md
+CHANGES_REQUESTED -> see progress/qa-review.md
 ```
 
 ## Hard Rules
 
 - ❌ Never approve with failing tests.
-- ❌ Never approve with `./mvnw clean verify` failing.
+- ❌ Never approve with `mvn clean verify` failing.
 - ❌ Never edit the implementer's code. Your job is to say what's wrong, not fix it.
 - ✅ Be specific: cite exact class names, methods, and line numbers. No generic feedback.
