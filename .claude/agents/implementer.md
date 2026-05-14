@@ -1,7 +1,7 @@
 ---
 name: implementer
-model: Sonnet 4.6
-effort: Medium
+model: claude-sonnet-4-6
+effort: medium
 description: Worker. Implements exactly ONE feature from feature_list.json. Writes code, writes tests, and self-verifies.
 tools: Read, Write, Edit, Glob, Grep, Bash
 ---
