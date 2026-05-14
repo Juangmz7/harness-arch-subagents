@@ -50,3 +50,84 @@ blocked -> see progress/current.md
 ```
 
 Never return the full diff in chat. The lead will read it from disk if needed.
+
+## Code style
+1. Apply **SOLID principles** and **compose method** for good code quality.
+2. Be **pragmatic** regarding to code abstractions and complexity
+3. Apply defensive programming. DO NOT trust any caller
+4. Example of good code:
+
+```java
+    public void updatePost(UUID postId, UpdatePostRequest request) throws AccessDeniedException {
+        var post = postRepository.findById(postId)
+        .orElseThrow(() -> new EntityNotFoundException("Post not found: " + postId));
+
+        assertOwnership(post);
+        assertUpdatableStatus(post);
+
+        applyContentChange(post, request.getBody());
+
+        var newlyAddedUserIds = applyTagDiff(post, parseRequestedTagUserIds(request));
+
+        if (!newlyAddedUserIds.isEmpty()) {
+            post.updateStatus(PostStatus.PENDING);
+        }
+
+        postRepository.save(post);
+
+        if (!newlyAddedUserIds.isEmpty()) {
+            messageSender.sendValidateUserBatchCommand(
+                    ValidateUserBatchCommand.byUserIds(post.getId(), newlyAddedUserIds)
+            );
+        }
+
+        log.info("Post {} updated by user {} (added tags: {}, status: {})",
+                postId, post.getUserId(), newlyAddedUserIds.size(), post.getStatus());
+    }
+
+    private void assertOwnership(Post post) throws AccessDeniedException {
+        if (!post.getUserId().equals(getCurrentUserId())) {
+            throw new AccessDeniedException("Post " + post.getId() + " does not belong to the current user");
+        }
+    }
+
+    private void assertUpdatableStatus(Post post) {
+        var status = post.getStatus();
+        if (status == PostStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot update a CANCELLED post");
+        }
+        if (status != PostStatus.PUBLISHED && status != PostStatus.PENDING) {
+            throw new IllegalStateException("Post must be PUBLISHED or PENDING to be updated, was: " + status);
+        }
+    }
+
+    private void applyContentChange(Post post, String newBody) {
+        if (newBody == null || newBody.equals(post.getContent())) {
+            return;
+        }
+        post.setBody(newBody);
+    }
+
+    private Set<UUID> parseRequestedTagUserIds(UpdatePostRequest request) {
+        if (request.getTags() == null) {
+            return Set.of();
+        }
+        return request.getTags().stream()
+                .map(UUID::fromString)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<UUID> applyTagDiff(Post post, Set<UUID> requestedUserIds) {
+        Set<UUID> currentUserIds = post.getTags().stream()
+                .map(PostTag::getTaggedUserId)
+                .collect(Collectors.toSet());
+
+        currentUserIds.stream()
+                .filter(userId -> !requestedUserIds.contains(userId))
+                .forEach(post::removeTagByUserId);
+
+        return requestedUserIds.stream()
+                .filter(userId -> !currentUserIds.contains(userId))
+                .collect(Collectors.toSet());
+    }
+```
