@@ -1,24 +1,54 @@
 {
-  "project": "notes-cli",
-  "description": "Minimalist notes CLI in Python. Serves as a didactic example of Harness Engineering.",
+  "project": "ecommerce-springboot-api",
+  "description": "Minimalist e-commerce platform in Spring Boot. Serves as a didactic example of Harness Engineering with a multi-agent architecture.",
   "rules": {
     "one_feature_at_a_time": true,
     "require_tests_to_close": true,
-    "valid_status": ["pending", "in_progress", "done", "blocked"]
+    "valid_status": ["pending", "in_progress", "done"]
   },
   "features": [
     {
       "id": 1,
-      "name": "storage_layer",
-      "title": "JSON storage layer",
-      "description": "Atomic read/write of notes to a JSON file. Creates the file if it does not exist.",
+      "name": "product_catalog",
+      "title": "Product Catalog API",
+      "description": "Core product entities and read-only endpoints to list and view product details. Implements the standard 3-layer architecture with DTO mapping.",
       "acceptance": [
-        "src/storage.py exists with load() and save(notes) functions",
-        "save() is atomic (write to temp file + rename)",
-        "load() returns [] if the file does not exist",
-        "tests/test_storage.py covers the 3 cases above"
+        "Product entity and Spring Data JPA ProductRepository exist",
+        "ProductService handles retrieval and maps Entity to ProductDTO",
+        "ProductController exposes GET /api/products and GET /api/products/{id}",
+        "ProductServiceTest uses Mockito to verify service logic",
+        "ProductControllerIntegrationTest verifies HTTP 200 and JSON structure using MockMvc and H2"
       ],
-      "status": "done"
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "name": "order_checkout",
+      "title": "Order Creation and Stock Validation",
+      "description": "Allows customers to create an order. Validates product existence and ensures sufficient stock before processing.",
+      "acceptance": [
+        "Order entity and OrderRepository exist",
+        "OrderService uses @Transactional to deduct stock and save the order atomically",
+        "OrderController exposes POST /api/orders accepting a list of items",
+        "Throws InsufficientStockException if requested quantity exceeds available stock",
+        "Global @ControllerAdvice catches DomainExceptions and returns standardized JSON errors",
+        "OrderServiceTest verifies stock deduction and exception throwing"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "name": "inventory_management",
+      "title": "Backoffice Inventory Management",
+      "description": "Admin endpoints to add new products to the catalog and update existing stock levels.",
+      "acceptance": [
+        "ProductController exposes POST /api/products to create items",
+        "ProductController exposes PUT /api/products/{id}/stock to update quantities",
+        "Endpoints use constructor injection (@RequiredArgsConstructor) and accept validated DTOs",
+        "ProductService handles the persistence of new products and stock updates",
+        "Integration tests with MockMvc verify HTTP 201 (Created) and successful database updates in H2"
+      ],
+      "status": "pending"
     }
   ]
 }
