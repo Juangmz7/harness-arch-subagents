@@ -4,20 +4,43 @@
   "rules": {
     "one_feature_at_a_time": true,
     "require_tests_to_close": true,
-    "valid_status": ["pending", "in_progress", "done"]
+    "valid_status": [
+      "pending",
+      "in_progress",
+      "done"
+    ]
   },
   "features": [
     {
       "id": 1,
       "name": "product_catalog",
       "title": "Product Catalog API",
-      "description": "Core product entities and read-only endpoints to list and view product details. Implements the standard 3-layer architecture with DTO mapping.",
+      "description": "Expose a read-only product catalog through a RESTful API following standard 3-layer architecture. The service layer is the only component allowed to access the repository; the controller must never interact with JPA directly.",
+      "technical_constraints": [
+        "Java 17+, Spring Boot 3.x, Spring Data JPA",
+        "H2 in-memory database for tests; schema auto-created via ddl-auto=create-drop",
+        "DTOs must be Java Records — no mutable POJOs for response objects",
+        "MapStruct or manual mapping permitted; ModelMapper is not allowed",
+        "No business logic in controller or repository layers"
+      ],
       "acceptance": [
-        "Product entity and Spring Data JPA ProductRepository exist",
-        "ProductService handles retrieval and maps Entity to ProductDTO",
-        "ProductController exposes GET /api/products and GET /api/products/{id}",
-        "ProductServiceTest uses Mockito to verify service logic",
-        "ProductControllerIntegrationTest verifies HTTP 200 and JSON structure using MockMvc and H2"
+        "Product entity is annotated with @Entity and @Table; all fields are mapped with explicit @Column names — no implicit naming",
+        "ProductRepository extends JpaRepository<Product, Long> with no custom queries needed for this feature",
+        "ProductDTO is a Java Record with fields: Long id, String name, String description, BigDecimal price, int stock",
+        "GET /api/products returns HTTP 200 with a JSON array; returns an empty array (not null) when no products exist",
+        "GET /api/products/{id} returns HTTP 200 with a single ProductDTO when the product exists",
+        "GET /api/products/{id} returns HTTP 404 with a structured JSON error body (not an empty response) when the product does not exist",
+        "ProductService.findAll() and findById() are annotated with @Transactional(readOnly = true)",
+        "ResourceNotFoundException is a custom unchecked exception; it must NOT extend RuntimeException directly — it must be domain-scoped (e.g. extend a base DomainException)",
+        "ProductServiceTest covers: findAll returns mapped DTOs, findById returns correct DTO, findById throws ResourceNotFoundException for missing id — Mockito only, no Spring context loaded",
+        "ProductControllerIntegrationTest uses @SpringBootTest + MockMvc + H2; verifies HTTP status, Content-Type, JSON field values, and that the empty-list endpoint returns [] not null",
+        "No System.out.println or e.printStackTrace() anywhere in production code"
+      ],
+      "pitfalls": [
+        "Returning null instead of an empty list from findAll()",
+        "Swallowing the ResourceNotFoundException in a try-catch and returning null",
+        "Leaking JPA entities directly from the controller response",
+        "@Transactional on the repository instead of the service"
       ],
       "status": "pending"
     },
@@ -25,14 +48,32 @@
       "id": 2,
       "name": "order_checkout",
       "title": "Order Creation and Stock Validation",
-      "description": "Allows customers to create an order. Validates product existence and ensures sufficient stock before processing.",
+      "description": "Allow customers to create an order containing one or more products. The operation must be fully atomic: stock is deducted and the order is persisted in the same transaction. Any failure must roll back the entire operation, leaving no partial state in the database.",
+      "technical_constraints": [
+        "Stock deduction and order persistence must occur within a single @Transactional method — no saveAndFlush workarounds",
+        "InsufficientStockException must trigger transaction rollback — verify it is unchecked or explicitly declared in rollbackFor",
+        "CreateOrderRequest must be validated with Jakarta Bean Validation (@NotEmpty, @Min) — invalid requests must return HTTP 400 before reaching the service",
+        "Error responses must follow a uniform structure: { timestamp, status, error, message, path }",
+        "Order total must be calculated server-side from current product prices — never trusted from the request body"
+      ],
       "acceptance": [
-        "Order entity and OrderRepository exist",
-        "OrderService uses @Transactional to deduct stock and save the order atomically",
-        "OrderController exposes POST /api/orders accepting a list of items",
-        "Throws InsufficientStockException if requested quantity exceeds available stock",
-        "Global @ControllerAdvice catches DomainExceptions and returns standardized JSON errors",
-        "OrderServiceTest verifies stock deduction and exception throwing"
+        "Order entity has: Long id, List<OrderItem> items, BigDecimal total, LocalDateTime createdAt, OrderStatus status (enum: PENDING, CONFIRMED, CANCELLED)",
+        "OrderItem is a @Embeddable or separate @Entity with productId, quantity, and unitPrice captured at time of order",
+        "POST /api/orders accepts CreateOrderRequest { List<OrderItemRequest> items } where each item has productId (Long, @NotNull) and quantity (int, @Min(1))",
+        "POST /api/orders returns HTTP 201 with OrderDTO on success; the response includes the generated order id and computed total",
+        "If any product in the order does not exist, the endpoint returns HTTP 404 and no stock is modified",
+        "If any product has insufficient stock, InsufficientStockException is thrown, HTTP 422 is returned, and no stock is deducted for any item in the request",
+        "Stock deduction is validated before any write — the service must not partially deduct stock across items before detecting an insufficient-stock condition",
+        "GlobalExceptionHandler (@RestControllerAdvice) handles ResourceNotFoundException → 404, InsufficientStockException → 422, MethodArgumentNotValidException → 400 — all with the uniform error structure",
+        "OrderServiceTest verifies: successful order reduces stock for all items, exception is thrown without stock modification when stock is insufficient, exception is thrown when a product does not exist",
+        "Tests use @Transactional on the test method or manual rollback to avoid polluting other test cases"
+      ],
+      "pitfalls": [
+        "Deducting stock item-by-item inside a loop before checking all items — causes partial stock corruption on failure",
+        "Using checked exceptions without rollbackFor — Spring will commit the transaction even after the exception",
+        "Trusting the total from the request body instead of computing it from the database",
+        "Returning HTTP 500 instead of a structured 4xx for known domain errors",
+        "Not capturing unitPrice at order time — price changes will corrupt historical order totals"
       ],
       "status": "pending"
     },
@@ -40,13 +81,32 @@
       "id": 3,
       "name": "inventory_management",
       "title": "Backoffice Inventory Management",
-      "description": "Admin endpoints to add new products to the catalog and update existing stock levels.",
+      "description": "Provide admin endpoints to add new products to the catalog and update existing stock levels. All inputs must be validated before reaching the service layer. Endpoints must be idempotent where appropriate and must not expose internal identifiers or JPA internals in error messages.",
+      "technical_constraints": [
+        "No authentication required for this feature — assume a trusted internal network (auth is out of scope)",
+        "Request DTOs must use Jakarta Bean Validation annotations; validation errors must return HTTP 400 with field-level detail",
+        "CreateProductRequest and UpdateStockRequest must be separate classes — do not reuse ProductDTO for input",
+        "Service methods that write data must be annotated with @Transactional (without readOnly)",
+        "Duplicate product names must be rejected at the service layer with a descriptive exception — not silently overwritten"
+      ],
       "acceptance": [
-        "ProductController exposes POST /api/products to create items",
-        "ProductController exposes PUT /api/products/{id}/stock to update quantities",
-        "Endpoints use constructor injection (@RequiredArgsConstructor) and accept validated DTOs",
-        "ProductService handles the persistence of new products and stock updates",
-        "Integration tests with MockMvc verify HTTP 201 (Created) and successful database updates in H2"
+        "POST /api/products accepts CreateProductRequest { String name (@NotBlank), String description (@NotBlank), BigDecimal price (@NotNull, @DecimalMin(\"0.01\")), int stock (@Min(0)) }",
+        "POST /api/products returns HTTP 201 with the full ProductDTO including the generated id; the Location header is set to /api/products/{id}",
+        "If a product with the same name already exists, POST /api/products returns HTTP 409 Conflict with a structured error body",
+        "PUT /api/products/{id}/stock accepts UpdateStockRequest { int quantity (@Min(0)) } — quantity is the new absolute stock value, not a delta",
+        "PUT /api/products/{id}/stock returns HTTP 200 with the updated ProductDTO",
+        "PUT /api/products/{id}/stock returns HTTP 404 if the product does not exist — the GlobalExceptionHandler must handle this, not a try-catch in the controller",
+        "Both endpoints reject requests with invalid fields and return HTTP 400 with a body listing which fields failed and why",
+        "Integration tests verify: HTTP 201 + Location header on creation, HTTP 409 on duplicate name, HTTP 200 + updated stock value on PUT, HTTP 400 on invalid input, HTTP 404 on unknown id for PUT",
+        "No integration test may rely on a hardcoded product id — ids must be obtained dynamically from a prior save or from the response body",
+        "ProductService has no overloaded method named 'save' used for both create and update — operations must be distinct methods with clear intent"
+      ],
+      "pitfalls": [
+        "Setting the Location header with a hardcoded base URL instead of using UriComponentsBuilder from the request context",
+        "Using the same DTO for both create input and HTTP response — exposes internal fields and breaks API contract evolution",
+        "Treating stock update as a delta (adding quantity) instead of an absolute set — undefined behavior on concurrent requests",
+        "Relying on a database unique constraint exception (DataIntegrityViolationException) instead of an explicit pre-check — produces a non-descriptive 500 or leaks SQL error messages",
+        "Hardcoding product ids in integration tests — tests become order-dependent and fail on clean runs"
       ],
       "status": "pending"
     }
