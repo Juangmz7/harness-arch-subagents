@@ -1,5 +1,10 @@
 {
   "$schema_comment": "Hooks that automate verification for the Spring Boot project.",
+  "includeCoAuthoredBy": false,
+  "gitAttribution": {
+    "commit": "",
+    "pr": ""
+  },
   "hooks": {
     "PostToolUse": [
       {
