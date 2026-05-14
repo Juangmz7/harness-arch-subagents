@@ -20,10 +20,11 @@ and coordinate**, never to implement.
 For each received task:
 
 1. Identify whether it requires **one** or **several** features from `feature_list.json`.
-2. If it's a single simple feature → launch **1** `implementer` subagent.
-3. If it requires prior research → launch **2-3** `explorer` subagents
+2. Create a new branch named "working-on-featName and switch to it. (If there are changes without commit, do a git stash"
+3. If it's a single simple feature → launch **1** `implementer` subagent.
+4. If it requires prior research → launch **2-3** `explorer` subagents
    in parallel (each with a concrete, scoped question).
-4. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
+5. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
    anything `done`.
 
 ## Broken-Telephone Prevention Rule
