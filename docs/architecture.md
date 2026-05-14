@@ -10,6 +10,7 @@
     - `Service` — Contains all business domain logic (e.g., calculating totals, verifying stock).
     - `Repository` — Persistence layer using Spring Data JPA interfaces.
     - `Model` — Contains all domain entities and custom exceptions.
+    - `Util` — Contains all helper utilities not related app logic.
       Do not introduce additional structural layers without a concrete reason documented in the project specifications.
 
 2. **Managed dependencies.** Rely on the standard Spring Boot ecosystem (Spring Web, Spring Data JPA), Lombok for boilerplate reduction, and MapStruct for mapping. If a feature requires a new external library, it must be discussed first (status `blocked`).
