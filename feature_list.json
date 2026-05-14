@@ -42,7 +42,7 @@
         "Leaking JPA entities directly from the controller response",
         "@Transactional on the repository instead of the service"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 2,
@@ -75,7 +75,7 @@
         "Returning HTTP 500 instead of a structured 4xx for known domain errors",
         "Not capturing unitPrice at order time — price changes will corrupt historical order totals"
       ],
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 3,

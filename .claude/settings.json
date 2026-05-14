@@ -29,7 +29,12 @@
     "allow": [
       "Bash(mvn test*)",
       "Bash(mvn clean verify*)",
-      "Bash(mvn spring-boot:run*)"
+      "Bash(mvn spring-boot:run*)",
+      "Bash(bash ./init.sh*)",
+      "Bash(git checkout*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(gh pr create*)"
     ]
   }
 }
