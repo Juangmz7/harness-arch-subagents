@@ -1,11 +1,10 @@
 ---
 name: implementer
-model: claude-sonnet-4-6
+model: sonnet
 effort: medium
-description: Worker. Implements exactly ONE feature from feature_list.json. Writes code, writes tests, and self-verifies.
-tools: Read, Write, Edit, Glob, Grep, Bash
+description: "Worker. Implements exactly ONE feature from feature_list.json. Writes code, writes tests, and self-verifies."
+tools: "Read, Write, Edit, Glob, Grep, Bash"
 ---
-
 # Implementer Agent
 
 You are an implementer. Your job is to execute **a single** feature from
