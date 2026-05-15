@@ -23,83 +23,84 @@
 ## Code style
 1. Apply **SOLID principles** and **compose method** for good code quality.
 2. Be **pragmatic** regarding to code abstractions and complexity
-3. Example of good code:
+3. Apply **STRICTLY** defensive programming (do not trust data from any caller).
+   Make **validations for any external** given values (Integrity and edges cases).
+4. Example of good code:
 
 ```java
-    public void updatePost(UUID postId, UpdatePostRequest request) throws AccessDeniedException {
-        var post = postRepository.findById(postId)
-        .orElseThrow(() -> new EntityNotFoundException("Post not found: " + postId));
+public void updatePost(UUID postId, UpdatePostRequest request) throws AccessDeniedException {
+    var post = postRepository.findById(postId)
+            .orElseThrow(() -> new EntityNotFoundException("Post not found: " + postId));
 
-        assertOwnership(post);
-        assertUpdatableStatus(post);
+    assertOwnership(post);
+    assertUpdatableStatus(post);
 
-        applyContentChange(post, request.getBody());
+    applyContentChange(post, request.getBody());
 
-        var newlyAddedUserIds = applyTagDiff(post, parseRequestedTagUserIds(request));
+    var newlyAddedUserIds = applyTagDiff(post, parseRequestedTagUserIds(request));
 
-        if (!newlyAddedUserIds.isEmpty()) {
-            post.updateStatus(PostStatus.PENDING);
-        }
-
-        postRepository.save(post);
-
-        if (!newlyAddedUserIds.isEmpty()) {
-            messageSender.sendValidateUserBatchCommand(
-                    ValidateUserBatchCommand.byUserIds(post.getId(), newlyAddedUserIds)
-            );
-        }
-
-        log.info("Post {} updated by user {} (added tags: {}, status: {})",
-                postId, post.getUserId(), newlyAddedUserIds.size(), post.getStatus());
+    if (!newlyAddedUserIds.isEmpty()) {
+        post.updateStatus(PostStatus.PENDING);
     }
 
-    private void assertOwnership(Post post) throws AccessDeniedException {
-        if (!post.getUserId().equals(getCurrentUserId())) {
-            throw new AccessDeniedException("Post " + post.getId() + " does not belong to the current user");
-        }
+    postRepository.save(post);
+
+    if (!newlyAddedUserIds.isEmpty()) {
+        messageSender.sendValidateUserBatchCommand(
+                ValidateUserBatchCommand.byUserIds(post.getId(), newlyAddedUserIds)
+        );
     }
 
-    private void assertUpdatableStatus(Post post) {
-        var status = post.getStatus();
-        if (status == PostStatus.CANCELLED) {
-            throw new IllegalStateException("Cannot update a CANCELLED post");
-        }
-        if (status != PostStatus.PUBLISHED && status != PostStatus.PENDING) {
-            throw new IllegalStateException("Post must be PUBLISHED or PENDING to be updated, was: " + status);
-        }
+    log.info("Post {} updated by user {} (added tags: {}, status: {})",
+            postId, post.getUserId(), newlyAddedUserIds.size(), post.getStatus());
+}
+
+private void assertOwnership(Post post) throws AccessDeniedException {
+    if (!post.getUserId().equals(getCurrentUserId())) {
+        throw new AccessDeniedException("Post " + post.getId() + " does not belong to the current user");
     }
+}
 
-    private void applyContentChange(Post post, String newBody) {
-        if (newBody == null || newBody.equals(post.getContent())) {
-            return;
-        }
-        post.setBody(newBody);
+private void assertUpdatableStatus(Post post) {
+    var status = post.getStatus();
+    if (status == PostStatus.CANCELLED) {
+        throw new IllegalStateException("Cannot update a CANCELLED post");
     }
-
-    private Set<UUID> parseRequestedTagUserIds(UpdatePostRequest request) {
-        if (request.getTags() == null) {
-            return Set.of();
-        }
-        return request.getTags().stream()
-                .map(UUID::fromString)
-                .collect(Collectors.toSet());
+    if (status != PostStatus.PUBLISHED && status != PostStatus.PENDING) {
+        throw new IllegalStateException("Post must be PUBLISHED or PENDING to be updated, was: " + status);
     }
+}
 
-    private Set<UUID> applyTagDiff(Post post, Set<UUID> requestedUserIds) {
-        Set<UUID> currentUserIds = post.getTags().stream()
-                .map(PostTag::getTaggedUserId)
-                .collect(Collectors.toSet());
-
-        currentUserIds.stream()
-                .filter(userId -> !requestedUserIds.contains(userId))
-                .forEach(post::removeTagByUserId);
-
-        return requestedUserIds.stream()
-                .filter(userId -> !currentUserIds.contains(userId))
-                .collect(Collectors.toSet());
+private void applyContentChange(Post post, String newBody) {
+    if (newBody == null || newBody.equals(post.getContent())) {
+        return;
     }
+    post.setBody(newBody);
+}
+
+private Set<UUID> parseRequestedTagUserIds(UpdatePostRequest request) {
+    if (request.getTags() == null) {
+        return Set.of();
+    }
+    return request.getTags().stream()
+            .map(UUID::fromString)
+            .collect(Collectors.toSet());
+}
+
+private Set<UUID> applyTagDiff(Post post, Set<UUID> requestedUserIds) {
+    Set<UUID> currentUserIds = post.getTags().stream()
+            .map(PostTag::getTaggedUserId)
+            .collect(Collectors.toSet());
+
+    currentUserIds.stream()
+            .filter(userId -> !requestedUserIds.contains(userId))
+            .forEach(post::removeTagByUserId);
+
+    return requestedUserIds.stream()
+            .filter(userId -> !currentUserIds.contains(userId))
+            .collect(Collectors.toSet());
+}
 ```
-
 
 ## File Structure
 
@@ -108,30 +109,32 @@ Every class in `src/main/java/...` follows a strict organizational flow:
 ```java
 package com.ecommerce.store.service;
 
-// 1. Framework & Library Imports
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+// 1. java.* / jakarta.* imports
+import java.util.List;
+import jakarta.transaction.Transactional;
 
-// 2. Local Imports
+// 2. Framework & Library imports (Spring, Lombok, MapStruct, etc.)
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+// 3. Local project imports
 import com.ecommerce.store.repository.ProductRepository;
 import com.ecommerce.store.model.Product;
 
-/**
- * Brief class-level JavaDoc explaining the domain responsibility.
- */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductService {
 
-    // 3. Injected Dependencies (private final)
+    // 4. Injected Dependencies (private final)
     private final ProductRepository productRepository;
 
-    // 4. Public Methods
+    // 5. Public Methods
     @Transactional
     public void updateStock(...) { ... }
 
-    // 5. Private Helper Methods
+    // 6. Private Helper Methods
     private void validateStock(...) { ... }
 }
 ```
@@ -140,6 +143,7 @@ public class ProductService {
 
 - One test class per component: `src/test/java/.../<Class>Test.java`.
 - Exclusive use of JUnit 5 and Mockito. For unit tests, use `@ExtendWith(MockitoExtension.class)` and avoid loading the full application context with `@SpringBootTest` unless it is a dedicated integration test.
+- Controller slice tests use `@WebMvcTest(XController.class)` with `@MockBean` for service dependencies. Named `<Controller>IT.java`.
 - Structure tests using the Arrange-Act-Assert (or Given-When-Then) pattern, separated by blank lines.
 - Descriptive test method names explaining the expected behavior: `shouldThrowExceptionWhenStockIsInsufficient()`.
 
@@ -163,7 +167,9 @@ public class ProductNotFoundException extends DomainException {
 
 The API layer catches domain exceptions via a global `@ControllerAdvice`, logs the error on the server side, and returns an appropriate HTTP Status (e.g., 404, 400) with a standardized JSON payload to the client (e.g., RFC 7807 Problem Details). Never propagate Java stack traces to the user.
 
-## Logging is mandatory for every critical operation. Use SLF4J (log variable named `log`).
+## Logging
+
+Logging is mandatory for every critical operation. Use SLF4J via Lombok `@Slf4j` annotation. Never declare the logger field manually.
 
 Rules:
 - ERROR: caught exceptions and unrecoverable states
@@ -172,13 +178,9 @@ Rules:
 - DEBUG: variable state, branch decisions, loop iterations when diagnosing is non-trivial
 
 Forbidden:
-- System.out / System.err
+- `System.out` / `System.err`
 - Logging inside repository interfaces
-- Log messages without context (e.g., "error occurred" → always include relevant IDs or state)
-
-Example:
-log.info("Creating product: name={}, category={}", product.getName(), product.getCategory());
-log.error("Failed to persist product: id={}", product.getId(), e);
+- Log messages without context (e.g., `"error occurred"` → always include relevant IDs or state)
 
 ```java
 public ProductDTO updateStock(Long id, UpdateStockRequest request) {
@@ -198,6 +200,52 @@ private void assertNoDuplicateName(String name) {
         throw new DuplicateProductNameException("Product with name '" + name + "' already exists");
     }
 }
+```
+
+## Mappers
+
+Use MapStruct. Mappers live in `src/main/java/.../mapper/`.
+
+```java
+@Mapper(componentModel = "spring")
+public interface ProductMapper {
+
+    ProductDTO toDto(Product product);
+
+    Product toEntity(CreateProductRequest request);
+
+    List<ProductDTO> toDtoList(List<Product> products);
+}
+```
+
+Rules:
+- Always `componentModel = "spring"` — injected as a Spring bean, never instantiated manually.
+- Interface only, never abstract class.
+- Method naming: `toDto`, `toEntity`, `toDtoList`, `toEntityList`.
+- If a field mapping is not obvious, use `@Mapping(source = "...", target = "...")`. Never write manual conversion logic inside the mapper.
+- If a field must be ignored: `@Mapping(target = "fieldName", ignore = true)`.
+- Mappers are pure data converters. No service calls, no repository calls, no business logic inside.
+- One mapper per aggregate root (e.g., `ProductMapper`, not `ProductAndCategoryMapper`).
+
+## DTO
+
+Use Java records:
+
+```java
+public record CreateOrderRequest(
+        @NotNull(message = "items must not be null")
+        @NotEmpty(message = "items must not be empty")
+        @Valid
+        List<OrderItemRequest> items
+) {}
+
+public record ProductDTO(
+        Long id,
+        String name,
+        String description,
+        BigDecimal price,
+        int stock
+) {}
 ```
 
 ## Comments
