@@ -10,12 +10,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
-/**
- * Embeddable value object representing a single line item within an order.
- * Captures the product reference, quantity requested, and unit price at the
- * time the order was placed so historical totals remain accurate even if
- * product prices change later.
- */
 @Embeddable
 @Getter
 @Setter

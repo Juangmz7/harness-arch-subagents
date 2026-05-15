@@ -15,10 +15,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
-/**
- * Centralized exception handler that translates domain exceptions into
- * structured JSON HTTP error responses.
- */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -45,12 +41,12 @@ public class GlobalExceptionHandler {
         log.warn("Insufficient stock: {}", ex.getMessage());
         var error = new ErrorResponseDTO(
                 LocalDateTime.now(),
-                HttpStatus.UNPROCESSABLE_ENTITY.value(),
-                HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase(),
+                HttpStatus.valueOf(422).value(),
+                HttpStatus.valueOf(422).getReasonPhrase(),
                 ex.getMessage(),
                 request.getRequestURI()
         );
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+        return ResponseEntity.status(HttpStatus.valueOf(422)).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
