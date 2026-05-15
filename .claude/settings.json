@@ -22,7 +22,7 @@
   "permissions": {
     "allow": [
       "Bash(mvn test*)",
-      "Bash(mvn clean verify*)",
+      "Bash(mvn clean*)",
       "Bash(mvn spring-boot:run*)",
       "Bash(bash ./init.sh*)",
       "Bash(git checkout*)",
