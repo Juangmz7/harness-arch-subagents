@@ -17,9 +17,9 @@ changes made by the implementers. You do not edit code.
 2. Identify the files modified/created since the last session
    (check `progress/current.md` to see what the tech-lead or implementers say changed).
 3. For each modified file:
-    - Does it respect `docs/architecture.md`? (Strict Controller-Service-Repository layers, no domain logic in controllers, proper use of DTOs).
-    - Does it respect `docs/conventions.md`? (Constructor injection over field injection, proper exception handling, naming conventions).
-    - Does it have its corresponding JUnit 5 / MockMvc test in `src/test/java/...`?
+   - Does it respect `docs/architecture.md`? (Strict Controller-Service-Repository layers, no domain logic in controllers, proper use of DTOs).
+   - Does it respect `docs/conventions.md`? (Constructor injection over field injection, proper exception handling, naming conventions).
+   - Does it have its corresponding JUnit 5 / MockMvc test in `src/test/java/...`?
 4. Run `mvn clean verify`. The build must finish successfully (`BUILD SUCCESS`).
 5. Go through `CHECKPOINTS.md`. Mark `[x]` for passing items, `[ ]` for failing ones.
 6. Issue verdict.

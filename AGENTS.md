@@ -8,6 +8,10 @@
 
 ## 1. Before you start (mandatory)
 
+📍 Environment Note (Windows):
+For .sh scripts (like init.sh): Strictly use Git Bash to execute them. Do not use PowerShell or WSL for .sh files.
+For everything else: Continue using PowerShell normally for Maven (mvn), Git, and general system commands.
+
 1. Run `./init.sh` and verify it finishes without errors. If it fails, **stop**
    and fix the environment before touching code.
 2. Read `progress/current.md` to understand the state the last session left off at.

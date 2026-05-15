@@ -33,12 +33,12 @@ class ProductControllerIntegrationTest {
     @Test
     void shouldCreateProduct() throws Exception {
         String jsonPayload = """
-            { "name": "Test Product", "price": 100.0, "stockQuantity": 10 }
-            """;
+                { "name": "Test Product", "price": 100.0, "stockQuantity": 10 }
+                """;
 
         mockMvc.perform(post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonPayload))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists());
     }
