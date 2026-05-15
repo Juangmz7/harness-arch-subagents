@@ -53,3 +53,21 @@
   - `src/test/.../service/OrderServiceTest.java` — 3 Mockito-only unit tests
   - `src/test/.../controller/OrderControllerIntegrationTest.java` — 5 integration tests
 - **Result:** 17/17 tests pass, QA approved. `./init.sh` green.
+- **Fixes applied in this session:** removed unjustified Javadoc from 9 order-domain files; replaced deprecated HttpStatus.UNPROCESSABLE_ENTITY with HttpStatus.valueOf(422); added @Transactional to OrderControllerIntegrationTest for rollback isolation. Feature closed as done.
+
+---
+
+## 2026-05-15 — Feature 3: inventory_management
+
+- **Agent:** leader → implementer → qa-reviewer (2 rounds)
+- **Branch:** `working-on-inventory_management`
+- **Changes:**
+  - `src/main/java/.../model/dto/CreateProductRequest.java` — @Data class with @NotBlank name/description, @NotNull @DecimalMin("0.01") price, @Min(0) stock
+  - `src/main/java/.../model/dto/UpdateStockRequest.java` — @Data class with @Min(0) int quantity (absolute value)
+  - `src/main/java/.../model/exception/DuplicateProductNameException.java` — extends DomainException
+  - `src/main/java/.../repository/ProductRepository.java` — added existsByName(String name)
+  - `src/main/java/.../service/ProductService.java` — added @Transactional create() and updateStock() methods
+  - `src/main/java/.../controller/ProductController.java` — POST /api/products (201 + Location) and PUT /api/products/{id}/stock (200)
+  - `src/main/java/.../controller/GlobalExceptionHandler.java` — added DuplicateProductNameException → 409; fixed validation error mapping to include field names
+  - `src/test/.../controller/ProductControllerInventoryIntegrationTest.java` — 5 integration tests (201+Location, 409 duplicate, 200 updated stock, 400 field error, 404 unknown)
+- **Result:** 22/22 tests pass, QA approved, feature marked done. `./init.sh` green.

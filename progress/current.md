@@ -3,24 +3,20 @@
 > This file is emptied at the close of each session and moved to `history.md`.
 > While you work, **keep it updated in real time**, not at the end.
 
-- **Feature in progress:** feature 3 — inventory_management (Backoffice Inventory Management)
-- **Start:** 2026-05-15
-- **Agent:** leader
+- **Feature in progress:** _none_
+- **Start:** _—_
+- **Agent:** _—_
 
 ## Plan
 
-- QA-review feature 2 (order_checkout) which is in_progress with green tests — close it out if it passes.
-- Create branch `working-on-inventory_management`.
-- Launch implementer subagent for feature 3 (POST /api/products + PUT /api/products/{id}/stock).
-- Launch qa-reviewer subagent after implementer finishes.
-- Commit and push; create PR.
+_Describe in 3-5 bullets what you are going to do before touching code._
 
 ## Log
 
-- 2026-05-15: init.sh green (17 tests pass). Feature 2 appears complete; launching QA reviewer.
-- 2026-05-15: QA reviewer launched for feature 2 (order_checkout).
+_Note each significant step here: files created, decisions, blockers._
+
+- ...
 
 ## Next step
 
 _If the session is interrupted, this is what the next session should do first._
-- Check progress/qa-review_order_checkout.md and continue from there.
