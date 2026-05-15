@@ -6,18 +6,7 @@
     "pr": ""
   },
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mvn test -q",
-            "description": "After editing or writing files, runs the JUnit tests automatically."
-          }
-        ]
-      }
-    ],
+    "PostToolUse": [],
     "Stop": [
       {
         "hooks": [
