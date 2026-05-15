@@ -24,11 +24,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * JPA entity representing a customer order. The order aggregates one or more
- * {@link OrderItem} value objects and tracks a pre-computed total, creation
- * timestamp, and lifecycle status.
- */
 @Entity
 @Table(name = "orders")
 @Getter
