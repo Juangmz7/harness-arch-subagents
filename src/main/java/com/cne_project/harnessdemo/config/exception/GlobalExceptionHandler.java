@@ -1,18 +1,21 @@
 package com.cne_project.harnessdemo.config.exception;
 
 import java.time.Instant;
+import java.util.stream.Collectors;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 import com.cne_project.harnessdemo.dto.response.ErrorResponse;
-import com.cne_project.harnessdemo.model.exception.DomainException;
+import com.cne_project.harnessdemo.model.exception.InsufficientStockException;
 import com.cne_project.harnessdemo.model.exception.ResourceNotFoundException;
 
 @Slf4j
@@ -33,6 +36,41 @@ public class GlobalExceptionHandler {
 				request.getRequestURI()
 		);
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+	}
+
+	@ExceptionHandler(InsufficientStockException.class)
+	public ResponseEntity<ErrorResponse> handleInsufficientStock(
+			InsufficientStockException ex,
+			HttpServletRequest request
+	) {
+		log.warn("Insufficient stock: {}", ex.getMessage());
+		var errorResponse = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.UNPROCESSABLE_ENTITY.value(),
+				HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase(),
+				ex.getMessage(),
+				request.getRequestURI()
+		);
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<ErrorResponse> handleValidationErrors(
+			MethodArgumentNotValidException ex,
+			HttpServletRequest request
+	) {
+		var fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+				.map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+				.collect(Collectors.joining(", "));
+		log.warn("Validation failed: {}", fieldErrors);
+		var errorResponse = new ErrorResponse(
+				Instant.now(),
+				HttpStatus.BAD_REQUEST.value(),
+				HttpStatus.BAD_REQUEST.getReasonPhrase(),
+				fieldErrors,
+				request.getRequestURI()
+		);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
 	}
 
 	@ExceptionHandler(Exception.class)
