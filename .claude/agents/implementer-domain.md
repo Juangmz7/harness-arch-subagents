@@ -74,7 +74,7 @@ implementation and the qa-reviewer will reject the integration.
 - `**/controller/**`, `**/dto/**`, `**/mapper/**`
 - These are owned by implementer-infra.
 
-If a DTO or mapper is missing, create a stub or assume it exists and log the dependency.
+If a DTO or mapper is missing, assume it exists and log the dependency.
 
 ## Code style
 See in **docs/conventions.md**

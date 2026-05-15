@@ -63,3 +63,6 @@ CHANGES_REQUESTED -> see progress/qa-review.md
 - ❌ Never approve with `mvn clean verify` failing.
 - ❌ Never edit the implementer's code. Your job is to say what's wrong, not fix it.
 - ✅ Be specific: cite exact class names, methods, and line numbers. No generic feedback.
+- Write the review file using the Edit/Write tool directly, NOT via bash scripts.
+  If the Write tool fails, log `blocked -> cannot write review file` and stop.
+  Do NOT improvise alternative write methods (python, node, cat, heredoc).
