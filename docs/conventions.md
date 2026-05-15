@@ -23,7 +23,9 @@
 ## Code style
 1. Apply **SOLID principles** and **compose method** for good code quality.
 2. Be **pragmatic** regarding to code abstractions and complexity
-3. Example of good code:
+3. Apply **STRICTLY** defensive programming (do not trust data from any caller). 
+   Make **validations for any external** given values (Integrity and edges cases).
+4. Example of good code:
 
 ```java
 public void updatePost(UUID postId, UpdatePostRequest request) throws AccessDeniedException {
