@@ -27,14 +27,14 @@ For each received task:
 5. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
    anything `done`.
 6. After finishing and ensuring all tests pass, create small, **atomic commits** grouping logical changes together (avoid making one massive commit)
-   When committing the changes, strictly use the **Conventional Commits format** for the message: type(scope): description.
+   When committing the changes, strictly use the **Conventional Commits format** for the message: type(scope): description (concise in imperative mood).
       Choose the appropriate type:
          **feat**: For a new feature.
          **fix**: For a bug fix.
          **test**: For adding or correcting Maven/JUnit tests.
          **refactor**: For code changes that neither fix a bug nor add a feature.
          **chore**: For updating configuration, hooks, or build tools.
-         Keep the description concise, in imperative mood, and under 50 characters.
+         **DO NOT** add a description to the commit apart from the commit message
 7. Push the current branch to the remote repository. 
    Then, use the GitHub CLI (gh pr create) to create a **Pull Request** against the original base branch. 
    Include a **detailed summary of the changes**, bug fixes, and test results in the PR body
