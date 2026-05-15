@@ -108,7 +108,7 @@
         "Relying on a database unique constraint exception (DataIntegrityViolationException) instead of an explicit pre-check — produces a non-descriptive 500 or leaks SQL error messages",
         "Hardcoding product ids in integration tests — tests become order-dependent and fail on clean runs"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

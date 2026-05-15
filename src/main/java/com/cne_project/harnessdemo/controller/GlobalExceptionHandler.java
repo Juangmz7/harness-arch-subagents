@@ -1,6 +1,7 @@
 package com.cne_project.harnessdemo.controller;
 
 import com.cne_project.harnessdemo.model.dto.ErrorResponseDTO;
+import com.cne_project.harnessdemo.model.exception.DuplicateProductNameException;
 import com.cne_project.harnessdemo.model.exception.InsufficientStockException;
 import com.cne_project.harnessdemo.model.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,12 +50,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.valueOf(422)).body(error);
     }
 
+    @ExceptionHandler(DuplicateProductNameException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDuplicateProductName(
+            DuplicateProductNameException ex,
+            HttpServletRequest request) {
+        log.warn("Duplicate product name: {}", ex.getMessage());
+        var error = new ErrorResponseDTO(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDTO> handleValidationErrors(
             MethodArgumentNotValidException ex,
             HttpServletRequest request) {
         String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));
         log.warn("Validation failed: {}", message);
         var error = new ErrorResponseDTO(
