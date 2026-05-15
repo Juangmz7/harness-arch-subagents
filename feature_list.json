@@ -42,7 +42,7 @@
         "Leaking JPA entities directly from the controller response",
         "@Transactional on the repository instead of the service"
       ],
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 2,
