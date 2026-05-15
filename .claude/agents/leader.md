@@ -21,22 +21,27 @@ For each received task:
 
 1. Identify whether it requires **one** or **several** features from `feature_list.json`.
 2. Create a **new branch** named **"working-on-featName"** and switch to it. (If there are changes without commit, do a git stash")
-3. If it's a single simple feature → launch **1** `implementer` subagent.
+3. Classify the feature type:
+   - **Domain-only** (service, entity, repository logic) → launch **1** `implementer-domain`
+   - **Infra-only** (DTOs, controllers, mappers, exceptions, helpers, boilerplate) → launch **1** `implementer-infra`
+   - **Full-feature** (both layers) → see sequencing rule below
+   - **Unclear** → launch **1** `explorer` first
 4. If it requires prior research → launch **2-3** `explorer` subagents
    in parallel (each with a concrete, scoped question).
 5. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
    anything `done`.
 6. After finishing and ensuring all tests pass, create small, **atomic commits** grouping logical changes together (avoid making one massive commit)
-   When committing the changes, strictly use the **Conventional Commits format** for the message: type(scope): description.
-      Choose the appropriate type:
-         **feat**: For a new feature.
-         **fix**: For a bug fix.
-         **test**: For adding or correcting Maven/JUnit tests.
-         **refactor**: For code changes that neither fix a bug nor add a feature.
-         **chore**: For updating configuration, hooks, or build tools.
-         Keep the description concise, in imperative mood, and under 50 characters.
-7. Push the current branch to the remote repository. 
-   Then, use the GitHub CLI (gh pr create) to create a **Pull Request** against the original base branch. 
+   When committing the changes, strictly use the **Conventional Commits format** for the message: type(scope): message (concise in imperative mood).
+   Choose the appropriate type:
+   **feat**: For a new feature.
+   **fix**: For a bug fix.
+   **test**: For adding or correcting Maven/JUnit tests.
+   **refactor**: For code changes that neither fix a bug nor add a feature.
+   **chore**: For updating configuration, hooks, or build tools.
+   **DO NOT** add any description to the commit apart from the commit message
+7. Push the current branch to the remote repository.
+   Then, use the GitHub CLI (gh pr create) to create a **Pull Request** against the original base branch.
+   The ORIGINAL base branch is **the one you branched off from**
    Include a **detailed summary of the changes**, bug fixes, and test results in the PR body
 
 ## Broken-Telephone Prevention Rule
@@ -59,17 +64,27 @@ Example of a correct instruction for a subagent:
 
 ## Effort Scaling
 
-| Task Complexity         | Parallel Subagents              | Notes                          |
-|-------------------------|---------------------------------|--------------------------------|
-| Trivial (1 file)        | 1 implementer                   | No explorers                   |
-| Medium (2-3 files)      | 1 implementer + 1 reviewer      |                                |
-| Complex (refactor)      | 2-3 explorers → 1 implementer → 1 reviewer | |
-| Very complex            | Split into sub-tasks and reapply the table | |
+| Task Complexity         | Parallel Subagents                                        | Notes                          |
+|-------------------------|-----------------------------------------------------------|--------------------------------|
+| Trivial (1 file)        | 1 implementer-domain or implementer-infra                 | No explorers                   |
+| Medium (2-3 files)      | 1 implementer + 1 qa-reviewer                             |                                |
+| Full feature            | implementer-domain → implementer-infra → qa-reviewer      | Sequential, never parallel     |
+| Complex (refactor)      | 2-3 explorers → 1 implementer → 1 qa-reviewer             |                                |
+| Very complex            | Split into sub-tasks and reapply the table                |                                |
+
+### Full-feature sequencing rule
+1. Launch `implementer-domain` first (service interface + implementation + entities + repositories).
+2. Wait for completion and confirm `progress/current.md` shows no blockers.
+3. Launch `implementer-infra` with explicit instruction to use the service interface defined in step 1.
+4. Launch `qa-reviewer` once both finish.
+
+Never launch `implementer-domain` and `implementer-infra` in parallel on the same feature.
+`implementer-infra` depends on the service contract that `implementer-domain` defines.
 
 ## What You DO NOT Do
 
 - ❌ **Commit files** changes in **which should not be done**: settings.json.
-- ❌ Commit private files (env, secrets) or skip adding them to gitignore. This is **CRITICAL**
+- ❌ **Commit private files** (env, secrets) or skip adding them to gitignore. This is **CRITICAL**
 - ❌ Edit files in `src/main/java/` or `src/test/java/`.
 - ❌ Mark features as `done` (the implementer does that after review).
 - ❌ Accept subagent results that come through chat without a file reference.

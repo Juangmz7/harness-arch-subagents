@@ -6,12 +6,12 @@
 ## Principles
 
 1. **Clear layers.** The project has strictly three main layers:
-    - `Controller` — Handles HTTP requests, input validation, and API responses.
-    - `Service` — Contains all business domain logic (e.g., calculating totals, verifying stock).
-    - `Repository` — Persistence layer using Spring Data JPA interfaces.
-    - `Model` — Contains all domain entities and custom exceptions.
-    - `Util` — Contains all helper utilities not related app logic.
-      Do not introduce additional structural layers without a concrete reason documented in the project specifications.
+   - `Controller` — Handles HTTP requests, input validation, and API responses.
+   - `Service` — Contains all business domain logic (e.g., calculating totals, verifying stock).
+   - `Repository` — Persistence layer using Spring Data JPA interfaces.
+   - `Model` — Contains all domain entities and custom exceptions.
+   - `Util` — Contains all helper utilities not related app logic.
+     Do not introduce additional structural layers without a concrete reason documented in the project specifications.
 
 2. **Managed dependencies.** Rely on the standard Spring Boot ecosystem (Spring Web, Spring Data JPA), Lombok for boilerplate reduction, and MapStruct for mapping. If a feature requires a new external library, it must be discussed first (status `blocked`).
 
@@ -37,6 +37,38 @@ client  ─→  Controller (@RestController)
                             └─→  Database (H2)
                          
 ```
+
+## Package Structure
+
+```
+com.ecommerce.store
+├── config           
+│   └── exception    # @ControllerAdvice
+├── controller       # @RestController classes
+├── service          # interfaces + @Service implementations
+├── repository       # Spring Data JPA interfaces
+├── model
+│   ├── entity       # @Entity classes
+│   └── exception    # DomainException subclasses
+├── mapper           # MapStruct interfaces
+├── dto
+│   ├── request      # inbound records (CreateXRequest, UpdateXRequest)
+│   └── response     # outbound records (XDto, XSummaryDto)
+└── util             # stateless helpers, no Spring beans
+```
+
+## Mapping Responsibility
+
+Mapping between DTOs and entities is done exclusively in the **Service layer**
+via injected MapStruct mappers. Controllers never call mappers directly.
+Controllers receive DTOs, pass them to the service, and return whatever the service returns.
+
+## Aggregate Rule
+
+One service per aggregate root. Child entities (e.g., `OrderItem`) are managed
+through their root's service (`OrderService`), never via their own service class.
+Repositories for child entities are allowed only if querying them independently
+is a justified performance need.
 
 ## What NOT to do
 

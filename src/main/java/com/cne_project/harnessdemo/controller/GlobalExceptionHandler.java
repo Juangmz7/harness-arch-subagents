@@ -1,6 +1,7 @@
 package com.cne_project.harnessdemo.controller;
 
 import com.cne_project.harnessdemo.model.dto.ErrorResponseDTO;
+import com.cne_project.harnessdemo.model.exception.DuplicateProductNameException;
 import com.cne_project.harnessdemo.model.exception.InsufficientStockException;
 import com.cne_project.harnessdemo.model.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,10 +16,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
-/**
- * Centralized exception handler that translates domain exceptions into
- * structured JSON HTTP error responses.
- */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -45,12 +42,27 @@ public class GlobalExceptionHandler {
         log.warn("Insufficient stock: {}", ex.getMessage());
         var error = new ErrorResponseDTO(
                 LocalDateTime.now(),
-                HttpStatus.UNPROCESSABLE_ENTITY.value(),
-                HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase(),
+                HttpStatus.valueOf(422).value(),
+                HttpStatus.valueOf(422).getReasonPhrase(),
                 ex.getMessage(),
                 request.getRequestURI()
         );
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+        return ResponseEntity.status(HttpStatus.valueOf(422)).body(error);
+    }
+
+    @ExceptionHandler(DuplicateProductNameException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDuplicateProductName(
+            DuplicateProductNameException ex,
+            HttpServletRequest request) {
+        log.warn("Duplicate product name: {}", ex.getMessage());
+        var error = new ErrorResponseDTO(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -58,7 +70,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex,
             HttpServletRequest request) {
         String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));
         log.warn("Validation failed: {}", message);
         var error = new ErrorResponseDTO(

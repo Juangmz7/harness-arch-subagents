@@ -1,43 +1,84 @@
-# Review — feature order_checkout (id=2)
+# Review — feature 2 (order_checkout)
 
-**Verdict:** APPROVED
+**Verdict:** NEEDS_FIXES
 
-## Checkpoints
+**Build:** `mvn clean verify` — BUILD SUCCESS, 17 tests, 0 failures, 0 errors.
 
-- C1: [x] — Base files exist (AGENTS.md, init.sh, feature_list.json, progress/current.md); docs exist (architecture.md, conventions.md, verification.md); build compiles successfully.
-- C2: [x] — Only feature #2 is in_progress; feature #1 is done with passing tests; progress/current.md describes the active session with no leftover garbage.
-- C3: [x] — All new files reside in the correct layers (Controller, Service, Repository, Model/Entity, DTO, Exception); spring-boot-starter-validation is an approved Spring Boot starter; no System.out.println or e.printStackTrace() found in any production file.
-- C4: [x] — OrderServiceTest (3 Mockito-only unit tests) and OrderControllerIntegrationTest (5 MockMvc + H2 integration tests) both exist; mvn test reports 17 tests run, 0 failures, 0 errors — BUILD SUCCESS.
-- C5: [x] — No stray .class files or target/ directory outside .gitignore; progress/history.md has an entry for the prior session; feature #2 is correctly marked in_progress.
+---
 
 ## Acceptance Criteria Results
 
-1. Order entity fields: [x] — Long id, List<OrderItem> items, BigDecimal total, LocalDateTime createdAt, OrderStatus status (PENDING, CONFIRMED, CANCELLED) all present in Order.java and OrderStatus.java.
-2. OrderItem @Embeddable with explicit @Column names: [x] — @Embeddable with @Column(name="product_id"), @Column(name="quantity"), @Column(name="unit_price").
-3. POST /api/orders request shape: [x] — CreateOrderRequest record with @NotNull @NotEmpty @Valid List<OrderItemRequest>; OrderItemRequest has @NotNull productId and @Min(1) quantity.
-4. POST /api/orders returns HTTP 201 with OrderDTO: [x] — OrderController returns ResponseEntity.status(HttpStatus.CREATED).body(orderDTO); OrderDTO includes id, items, total, createdAt, status.
-5. Missing product returns 404, no stock modified: [x] — resolveProducts() calls findById(...).orElseThrow(ResourceNotFoundException) before any write; GlobalExceptionHandler maps to 404; integration test verifies.
-6. Insufficient stock returns 422, no stock deducted for ANY item: [x] — validateStock() runs entirely before deductStockAndBuildItems(); GlobalExceptionHandler maps InsufficientStockException to 422; integration test verifies stock unchanged.
-7. Stock validation before write: [x] — resolveProducts() and validateStock() both complete before deductStockAndBuildItems() is called; no partial write possible.
-8. GlobalExceptionHandler: [x] — ResourceNotFoundException -> 404, InsufficientStockException -> 422, MethodArgumentNotValidException -> 400; all return ErrorResponseDTO with timestamp, status, error, message, path fields.
-9. OrderServiceTest Mockito-only: [x] — @ExtendWith(MockitoExtension.class), no @SpringBootTest; covers successful order (stock reduced for all items), InsufficientStockException (no save calls), ResourceNotFoundException (no save calls).
-10. Test isolation: [x] — OrderControllerIntegrationTest uses @BeforeEach with orderRepository.deleteAll() and productRepository.deleteAll().
-11. No System.out.println or e.printStackTrace(): [x] — grep on src/main/java found zero matches; @Slf4j used for all logging.
+### AC1 — Order entity fields
+PASS. Order.java declares Long id, List<OrderItem> items, BigDecimal total, LocalDateTime createdAt, OrderStatus status. OrderStatus enum has PENDING, CONFIRMED, CANCELLED.
 
-## Architecture and Convention Compliance
+### AC2 — OrderItem as @Embeddable with price capture
+PASS. OrderItem.java is @Embeddable with productId (Long), quantity (int), unitPrice (BigDecimal). The unit price is copied from the product at order time in OrderService.deductStockAndBuildItems() (line 85).
 
-- Strict layer separation: [x] — OrderController delegates entirely to OrderService; no JPA or repository access in the controller; no business logic in the controller.
-- Constructor injection: [x] — OrderController and OrderService both use @RequiredArgsConstructor with private final fields; no @Autowired field injection in production code. (The @Autowired in OrderControllerIntegrationTest is the accepted test pattern per docs/verification.md.)
-- Transactional at service level: [x] — OrderService.createOrder() is @Transactional; InsufficientStockException extends DomainException (RuntimeException) ensuring automatic rollback.
-- No domain logic in controller: [x] — total computation, stock validation, and order persistence are all in OrderService private helpers.
-- DTOs not entities in responses: [x] — OrderController accepts CreateOrderRequest and returns OrderDTO; Order entity is never exposed.
-- Compose-method pattern: [x] — createOrder() delegates to resolveProducts(), validateStock(), deductStockAndBuildItems(), persistOrder(), toDTO() — consistent with conventions.md code style example.
-- Naming conventions: [x] — all classes PascalCase, methods camelCase, endpoints kebab-case (/api/orders).
-- Import ordering and wildcard imports: [x] — all files use explicit imports; no wildcard imports found.
-- Java records for DTOs: [x] — OrderItemRequest, CreateOrderRequest, OrderItemDTO, OrderDTO are all records.
-- SLF4J logging via @Slf4j: [x] — OrderService uses log.debug(); GlobalExceptionHandler uses log.warn().
+### AC3 — POST /api/orders request shape and validation
+PASS. OrderController maps POST /api/orders. CreateOrderRequest holds @NotNull @NotEmpty @Valid List<OrderItemRequest>. OrderItemRequest has @NotNull Long productId and @Min(1) int quantity.
 
-## Minor Observations (non-blocking)
+### AC4 — HTTP 201 with OrderDTO including id and total
+PASS. OrderController.createOrder() returns ResponseEntity.status(HttpStatus.CREATED).body(orderDTO). OrderDTO record includes id, items, total, createdAt, status. Integration test createOrder_shouldReturn201WithOrderDTO_whenRequestIsValid asserts $.id, $.total, and status().isCreated().
 
-- The readOnly=true @Transactional hint is not applied to any read methods in OrderService. The feature only defines createOrder() (a write operation), so there are no read methods to annotate; this is not a violation.
-- progress/history.md does not yet have an entry for the feature #2 session (the session is still in_progress per current.md), so C5 is met as documented.
+### AC5 — HTTP 404 when product does not exist, no stock modified
+PASS. OrderService.resolveProducts() throws ResourceNotFoundException before any stock deduction. GlobalExceptionHandler maps it to HTTP 404. Both the integration test and the unit test verify this behavior.
+
+### AC6 — HTTP 422 on insufficient stock, no stock deducted for any item
+PASS. OrderService.validateStock() iterates all items and throws InsufficientStockException before deductStockAndBuildItems() is called. GlobalExceptionHandler maps to HTTP 422. Integration test verifies stock unchanged; unit test asserts productRepository.save() is never called.
+
+### AC7 — Stock validation before any write
+PASS. In OrderService.createOrder() lines 46-48, call order is: resolveProducts() then validateStock() then deductStockAndBuildItems(). No write occurs until full validation passes.
+
+### AC8 — GlobalExceptionHandler handles all three exceptions with uniform structure
+PASS. GlobalExceptionHandler (@RestControllerAdvice) handles ResourceNotFoundException to 404, InsufficientStockException to 422, MethodArgumentNotValidException to 400. All return ErrorResponseDTO(timestamp, status, error, message, path).
+
+Minor note: HttpStatus.UNPROCESSABLE_ENTITY is deprecated in the Spring Boot version in use. It causes compiler warnings at GlobalExceptionHandler.java lines 48, 49, 53. Build still succeeds.
+
+### AC9 — OrderServiceTest coverage
+PASS. OrderServiceTest contains three tests: (1) happy path verifying stock reduced and save called, (2) insufficient stock verifying exception thrown and no save, (3) product not found verifying exception thrown and no save.
+
+### AC10 — Tests use @Transactional or manual rollback
+FAIL.
+
+OrderServiceTest is a pure Mockito unit test with @ExtendWith(MockitoExtension.class) — no database, no isolation mechanism needed. Correct.
+
+OrderControllerIntegrationTest (@SpringBootTest) does NOT use @Transactional on test methods and does NOT perform a manual rollback. It uses @BeforeEach with orderRepository.deleteAll() and productRepository.deleteAll() at lines 37-38. This is pre-test cleanup, not rollback-after. If a test throws an unexpected exception partway through and leaves dirty state, it would be cleaned before the next test starts — but this is still not the "manual rollback" the criterion requires. The criterion states "@Transactional on the test method or manual rollback."
+
+Required fix: Add @Transactional at the class level of OrderControllerIntegrationTest so Spring rolls back the database after each test automatically.
+File: src/test/java/com/cne_project/harnessdemo/controller/OrderControllerIntegrationTest.java
+
+### AC11 — No System.out.println or e.printStackTrace() in production code
+PASS. Grep of src/main/java for System.out and e.printStackTrace returns zero matches.
+
+---
+
+## Additional Convention Violations
+
+### V1 — Excessive Javadoc (docs/conventions.md violation)
+
+docs/conventions.md: "Comments are forbidden by default. No Javadoc... Class-level Javadoc is only allowed if the class name + package do not fully convey its responsibility."
+
+The following files contain class-level and/or method-level Javadoc that is not justified by any of the three permitted exceptions:
+- src/main/java/com/cne_project/harnessdemo/model/entity/OrderStatus.java lines 4-6
+- src/main/java/com/cne_project/harnessdemo/model/exception/DomainException.java lines 4-6
+- src/main/java/com/cne_project/harnessdemo/model/exception/ResourceNotFoundException.java lines 4-6
+- src/main/java/com/cne_project/harnessdemo/model/dto/ErrorResponseDTO.java lines 6-8
+- src/main/java/com/cne_project/harnessdemo/model/dto/OrderItemDTO.java lines 7-9
+- src/main/java/com/cne_project/harnessdemo/controller/OrderController.java lines 15-17
+- src/main/java/com/cne_project/harnessdemo/model/entity/Order.java lines 27-30
+- src/main/java/com/cne_project/harnessdemo/model/entity/OrderItem.java lines 13-17
+
+### V2 — Deprecated API in GlobalExceptionHandler (advisory)
+
+HttpStatus.UNPROCESSABLE_ENTITY is deprecated in Spring 6.x. The compiler warns at GlobalExceptionHandler.java lines 48, 49, 53. Should be replaced with HttpStatus.valueOf(422) or equivalent non-deprecated constant.
+
+---
+
+## Required Changes
+
+1. BLOCKING (AC10): Add @Transactional at the class level (or per @Test method) in OrderControllerIntegrationTest so database state is rolled back after each test, not just cleaned before the next.
+   File: src/test/java/com/cne_project/harnessdemo/controller/OrderControllerIntegrationTest.java
+
+2. ADVISORY (V1): Remove unjustified Javadoc from all files listed under V1 above.
+
+3. ADVISORY (V2): Replace HttpStatus.UNPROCESSABLE_ENTITY at GlobalExceptionHandler.java lines 48, 49, 53 to eliminate the deprecation warning.

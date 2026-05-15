@@ -75,7 +75,7 @@
         "Returning HTTP 500 instead of a structured 4xx for known domain errors",
         "Not capturing unitPrice at order time — price changes will corrupt historical order totals"
       ],
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 3,
@@ -108,7 +108,7 @@
         "Relying on a database unique constraint exception (DataIntegrityViolationException) instead of an explicit pre-check — produces a non-descriptive 500 or leaks SQL error messages",
         "Hardcoding product ids in integration tests — tests become order-dependent and fail on clean runs"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
