@@ -21,7 +21,11 @@ For each received task:
 
 1. Identify whether it requires **one** or **several** features from `feature_list.json`.
 2. Create a **new branch** named **"working-on-featName"** and switch to it. (If there are changes without commit, do a git stash")
-3. If it's a single simple feature → launch **1** `implementer` subagent.
+3. Classify the feature type:
+   - **Domain-only** (service, entity, repository logic) → launch **1** `implementer-domain`
+   - **Infra-only** (DTOs, controllers, mappers, exceptions, helpers, boilerplate) → launch **1** `implementer-infra`
+   - **Full-feature** (both layers) → see sequencing rule below
+   - **Unclear** → launch **1** `explorer` first
 4. If it requires prior research → launch **2-3** `explorer` subagents
    in parallel (each with a concrete, scoped question).
 5. When the `implementer` finishes → launch **1** `qa-reviewer` before declaring
@@ -59,12 +63,22 @@ Example of a correct instruction for a subagent:
 
 ## Effort Scaling
 
-| Task Complexity         | Parallel Subagents              | Notes                          |
-|-------------------------|---------------------------------|--------------------------------|
-| Trivial (1 file)        | 1 implementer                   | No explorers                   |
-| Medium (2-3 files)      | 1 implementer + 1 reviewer      |                                |
-| Complex (refactor)      | 2-3 explorers → 1 implementer → 1 reviewer | |
-| Very complex            | Split into sub-tasks and reapply the table | |
+| Task Complexity         | Parallel Subagents                                        | Notes                          |
+|-------------------------|-----------------------------------------------------------|--------------------------------|
+| Trivial (1 file)        | 1 implementer-domain or implementer-infra                 | No explorers                   |
+| Medium (2-3 files)      | 1 implementer + 1 qa-reviewer                             |                                |
+| Full feature            | implementer-domain → implementer-infra → qa-reviewer      | Sequential, never parallel     |
+| Complex (refactor)      | 2-3 explorers → 1 implementer → 1 qa-reviewer             |                                |
+| Very complex            | Split into sub-tasks and reapply the table                |                                |
+
+### Full-feature sequencing rule
+1. Launch `implementer-domain` first (service interface + implementation + entities + repositories).
+2. Wait for completion and confirm `progress/current.md` shows no blockers.
+3. Launch `implementer-infra` with explicit instruction to use the service interface defined in step 1.
+4. Launch `qa-reviewer` once both finish.
+
+Never launch `implementer-domain` and `implementer-infra` in parallel on the same feature.
+`implementer-infra` depends on the service contract that `implementer-domain` defines.
 
 ## What You DO NOT Do
 

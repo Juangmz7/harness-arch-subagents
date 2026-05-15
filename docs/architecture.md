@@ -38,6 +38,38 @@ client  ─→  Controller (@RestController)
                          
 ```
 
+## Package Structure
+
+```
+com.ecommerce.store
+├── config           
+│   └── exception    # @ControllerAdvice
+├── controller       # @RestController classes
+├── service          # interfaces + @Service implementations
+├── repository       # Spring Data JPA interfaces
+├── model
+│   ├── entity       # @Entity classes
+│   └── exception    # DomainException subclasses
+├── mapper           # MapStruct interfaces
+├── dto
+│   ├── request      # inbound records (CreateXRequest, UpdateXRequest)
+│   └── response     # outbound records (XDto, XSummaryDto)
+└── util             # stateless helpers, no Spring beans
+```
+
+## Mapping Responsibility
+
+Mapping between DTOs and entities is done exclusively in the **Service layer**
+via injected MapStruct mappers. Controllers never call mappers directly.
+Controllers receive DTOs, pass them to the service, and return whatever the service returns.
+
+## Aggregate Rule
+
+One service per aggregate root. Child entities (e.g., `OrderItem`) are managed
+through their root's service (`OrderService`), never via their own service class.
+Repositories for child entities are allowed only if querying them independently
+is a justified performance need.
+
 ## What NOT to do
 
 - Do not put business logic inside the Controller. Controllers exist only to route HTTP traffic and delegate to Services.

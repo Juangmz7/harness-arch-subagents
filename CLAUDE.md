@@ -14,8 +14,11 @@ to implement.
   or Bash).
 - ❌ **Do not mark** features as `done` in `feature_list.json`.
 - ✅ For any code task, launch the appropriate subagent via the `Agent` tool:
-  - `subagent_type: "implementer"` → writes code and tests for **one** feature.
-  - `subagent_type: "qa-reviewer"` → validates the implementer's work before closing.
+  - `subagent_type: "implementer-domain"` → domain logic, service layer, entities, repositories.
+  - `subagent_type: "implementer-infra"` → DTOs, controllers, mappers, exceptions.
+  - `subagent_type: "qa-reviewer"` → validates work before closing.
+  - For full-feature tasks: launch `implementer-domain` first, wait for completion,
+      then launch `implementer-infra`. Never in parallel on the same feature.
   - If the task requires prior research, launch 2-3 subagents in parallel
     (Explore or general-purpose) with scoped questions.
 

@@ -20,19 +20,19 @@ For everything else: Continue using PowerShell normally for Maven (mvn), Git, an
 
 ## 2. Repository map
 
-| File / folder                   | What it contains                                                  | When to read it |
-|---------------------------------|-------------------------------------------------------------------|-----------------|
-| `feature_list.json`             | Task list with status (pending / in_progress / done)              | Always, at the start |
-| `progress/current.md`           | State of the current session                                      | Always, at the start |
-| `progress/history.md`           | Append-only log of previous sessions                              | If you need historical context |
-| `docs/architecture.md`          | What "doing good work" means in this project                      | Before implementing |
-| `docs/conventions.md`           | Style rules, naming, structure                                    | Before writing code |
-| `docs/verification.md`          | How to verify your work functions                                 | Before declaring a task `done` |
-| `CHECKPOINTS.md`                | Objective criteria for "correct final state"                      | For self-evaluation |
-| `.claude/agents/`               | Subagent definitions (leader, implementer, qa-reviewer, explorer) | If orchestrating work |
-| `scripts/demo_orchestration.py` | Demo of the Leader-Worker pattern with disk writes                | To understand the broken-telephone rule |
-| `src/main/java`                 | Application code                                                  | To implement |
-| `src/test/java`                 | Automated tests                                                   | To verify |
+| File / folder                   | What it contains                                                                            | When to read it                         |
+|---------------------------------|---------------------------------------------------------------------------------------------|-----------------------------------------|
+| `feature_list.json`             | Task list with status (pending / in_progress / done)                                        | Always, at the start                    |
+| `progress/current.md`           | State of the current session                                                                | Always, at the start                    |
+| `progress/history.md`           | Append-only log of previous sessions                                                        | If you need historical context          |
+| `docs/architecture.md`          | What "doing good work" means in this project                                                | Before implementing                     |
+| `docs/conventions.md`           | Style rules, naming, structure                                                              | Before writing code                     |
+| `docs/verification.md`          | How to verify your work functions                                                           | Before declaring a task `done`          |
+| `CHECKPOINTS.md`                | Objective criteria for "correct final state"                                                | For self-evaluation                     |
+| `.claude/agents/`               | Subagent definitions (leader, implementer-domain, implementer-infra, qa-reviewer, explorer) | If orchestrating work                   |
+| `scripts/demo_orchestration.py` | Demo of the Leader-Worker pattern with disk writes                                          | To understand the broken-telephone rule |
+| `src/main/java`                 | Application code                                                                            | To implement                            |
+| `src/test/java`                 | Automated tests                                                                             | To verify                               |
 
 ## 3. Hard rules (non-negotiable)
 
@@ -42,6 +42,8 @@ For everything else: Continue using PowerShell normally for Maven (mvn), Git, an
 - **Document what you do** in `progress/current.md` as you work, not at the end.
 - **Leave the repository clean** before closing the session (see §5).
 - **If you don't know something, look in `docs/`** before making it up.
+- **Full-feature tasks run sequentially.** Launch `implementer-domain` first, wait for completion, then `implementer-infra`.
+  Never both in parallel on the same feature.
 
 ## 4. How to pick a task
 

@@ -26,7 +26,7 @@
 3. Example of good code:
 
 ```java
-    public void updatePost(UUID postId, UpdatePostRequest request) throws AccessDeniedException {
+public void updatePost(UUID postId, UpdatePostRequest request) throws AccessDeniedException {
     var post = postRepository.findById(postId)
             .orElseThrow(() -> new EntityNotFoundException("Post not found: " + postId));
 
@@ -100,7 +100,6 @@ private Set<UUID> applyTagDiff(Post post, Set<UUID> requestedUserIds) {
 }
 ```
 
-
 ## File Structure
 
 Every class in `src/main/java/...` follows a strict organizational flow:
@@ -108,30 +107,32 @@ Every class in `src/main/java/...` follows a strict organizational flow:
 ```java
 package com.ecommerce.store.service;
 
-// 1. Framework & Library Imports
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+// 1. java.* / jakarta.* imports
+import java.util.List;
+import jakarta.transaction.Transactional;
 
-// 2. Local Imports
+// 2. Framework & Library imports (Spring, Lombok, MapStruct, etc.)
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+// 3. Local project imports
 import com.ecommerce.store.repository.ProductRepository;
 import com.ecommerce.store.model.Product;
 
-/**
- * Brief class-level JavaDoc explaining the domain responsibility.
- */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductService {
 
-    // 3. Injected Dependencies (private final)
+    // 4. Injected Dependencies (private final)
     private final ProductRepository productRepository;
 
-    // 4. Public Methods
+    // 5. Public Methods
     @Transactional
     public void updateStock(...) { ... }
 
-    // 5. Private Helper Methods
+    // 6. Private Helper Methods
     private void validateStock(...) { ... }
 }
 ```
@@ -140,6 +141,7 @@ public class ProductService {
 
 - One test class per component: `src/test/java/.../<Class>Test.java`.
 - Exclusive use of JUnit 5 and Mockito. For unit tests, use `@ExtendWith(MockitoExtension.class)` and avoid loading the full application context with `@SpringBootTest` unless it is a dedicated integration test.
+- Controller slice tests use `@WebMvcTest(XController.class)` with `@MockBean` for service dependencies. Named `<Controller>IT.java`.
 - Structure tests using the Arrange-Act-Assert (or Given-When-Then) pattern, separated by blank lines.
 - Descriptive test method names explaining the expected behavior: `shouldThrowExceptionWhenStockIsInsufficient()`.
 
@@ -163,7 +165,9 @@ public class ProductNotFoundException extends DomainException {
 
 The API layer catches domain exceptions via a global `@ControllerAdvice`, logs the error on the server side, and returns an appropriate HTTP Status (e.g., 404, 400) with a standardized JSON payload to the client (e.g., RFC 7807 Problem Details). Never propagate Java stack traces to the user.
 
-## Logging is mandatory for every critical operation. Use SLF4J (log variable named `log`).
+## Logging
+
+Logging is mandatory for every critical operation. Use SLF4J via Lombok `@Slf4j` annotation. Never declare the logger field manually.
 
 Rules:
 - ERROR: caught exceptions and unrecoverable states
@@ -172,13 +176,9 @@ Rules:
 - DEBUG: variable state, branch decisions, loop iterations when diagnosing is non-trivial
 
 Forbidden:
-- System.out / System.err
+- `System.out` / `System.err`
 - Logging inside repository interfaces
-- Log messages without context (e.g., "error occurred" → always include relevant IDs or state)
-
-Example:
-log.info("Creating product: name={}, category={}", product.getName(), product.getCategory());
-log.error("Failed to persist product: id={}", product.getId(), e);
+- Log messages without context (e.g., `"error occurred"` → always include relevant IDs or state)
 
 ```java
 public ProductDTO updateStock(Long id, UpdateStockRequest request) {
@@ -198,6 +198,52 @@ private void assertNoDuplicateName(String name) {
         throw new DuplicateProductNameException("Product with name '" + name + "' already exists");
     }
 }
+```
+
+## Mappers
+
+Use MapStruct. Mappers live in `src/main/java/.../mapper/`.
+
+```java
+@Mapper(componentModel = "spring")
+public interface ProductMapper {
+
+    ProductDTO toDto(Product product);
+
+    Product toEntity(CreateProductRequest request);
+
+    List<ProductDTO> toDtoList(List<Product> products);
+}
+```
+
+Rules:
+- Always `componentModel = "spring"` — injected as a Spring bean, never instantiated manually.
+- Interface only, never abstract class.
+- Method naming: `toDto`, `toEntity`, `toDtoList`, `toEntityList`.
+- If a field mapping is not obvious, use `@Mapping(source = "...", target = "...")`. Never write manual conversion logic inside the mapper.
+- If a field must be ignored: `@Mapping(target = "fieldName", ignore = true)`.
+- Mappers are pure data converters. No service calls, no repository calls, no business logic inside.
+- One mapper per aggregate root (e.g., `ProductMapper`, not `ProductAndCategoryMapper`).
+
+## DTO
+
+Use Java records:
+
+```java
+public record CreateOrderRequest(
+        @NotNull(message = "items must not be null")
+        @NotEmpty(message = "items must not be empty")
+        @Valid
+        List<OrderItemRequest> items
+) {}
+
+public record ProductDTO(
+        Long id,
+        String name,
+        String description,
+        BigDecimal price,
+        int stock
+) {}
 ```
 
 ## Comments
