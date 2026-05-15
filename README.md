@@ -1,24 +1,15 @@
-````markdown
 # harness-arch-subagents — E-commerce Spring Boot API
 
-Example project demonstrating **Harness Engineering** principles
-applied to a minimalist e-commerce REST API in Java + Spring Boot.
+A minimalist e-commerce REST API in Java + Spring Boot, structured so an AI agent can work on it autonomously and verifiably.
 
-> The application code is deliberately simple. What matters about
-> this repo is not **what** it does, but **how** it is structured so that an
-> AI agent can work on it autonomously and verifiably.
+## Prerequisites
 
-## How the harness is organized
-
-| Pillar | Manifestation in this repo |
-|--------|----------------------------|
-| **1. The repository IS the system** | `AGENTS.md`, `init.sh`, `feature_list.json`, `progress/`, `docs/` |
-| **2. Multi-agent orchestration** | `.claude/agents/leader.md`, `implementer.md`, `qa-reviewer.md` |
-| **3. Supervision and improvement** | `CHECKPOINTS.md`, hooks in `CLAUDE.md`, `src/test/java/` |
+- Java 17+
+- Maven 3.8+ (or use the included `./mvnw` wrapper)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (for the agentic workflow)
+- **Windows users:** run `.sh` scripts in Git Bash; use PowerShell for Maven and Git
 
 ## Getting started
-
-> **Windows note:** use Git Bash to run `.sh` scripts. Use PowerShell for Maven, Git, and general commands.
 
 ```bash
 ./init.sh
@@ -26,7 +17,7 @@ applied to a minimalist e-commerce REST API in Java + Spring Boot.
 
 If everything is green, open `AGENTS.md` and follow from there.
 
-## Using the app (humans)
+## Using the app
 
 ```bash
 # Build and run
@@ -39,7 +30,7 @@ If everything is green, open `AGENTS.md` and follow from there.
 ./mvnw clean compile
 ```
 
-The API is available at `http://localhost:8080`. Key endpoints:
+API available at `http://localhost:8080`:
 
 ```
 GET  /api/products          # List all products
@@ -47,28 +38,36 @@ GET  /api/products/{id}     # Get product by id
 POST /api/orders            # Create an order
 ```
 
-## Try it yourself with Claude Code
+## Harness structure
 
-If you clone the repo and open Claude Code at the root, you are already inside the
-harness: `CLAUDE.md` forces the model to act as `leader` (orchestrates, does not
-edit code).
+| Pillar | Manifestation |
+|--------|---------------|
+| **Repository IS the system** | `AGENTS.md`, `init.sh`, `feature_list.json`, `progress/`, `docs/` |
+| **Multi-agent orchestration** | `.claude/agents/leader.md`, `implementer.md`, `qa-reviewer.md` |
+| **Supervision and improvement** | `CHECKPOINTS.md`, hooks in `CLAUDE.md`, `src/test/java/` |
 
-Quick recipe:
+Key design decisions:
 
-1. `./init.sh` — must finish green.
-2. Open `feature_list.json` and leave at least one feature with `status: "pending"`.
-   If all are `done`, add a new one at the end of the array or change an existing
-   status to reopen it.
-3. Launch Claude Code at the repo root: `claude`.
-4. Tell it literally: **"implement the next pending feature"**.
+- **One feature at a time** — `init.sh` rejects more than one `in_progress` entry in `feature_list.json`
+- **State on disk, not in chat** — `progress/` files survive restarts and blown context windows
+- **Leader-Worker-Reviewer** — the leader does not implement, the implementer does not self-approve, the reviewer does not edit code
+- **No broken telephone** — subagents write results to files and return only a lightweight reference
+- **Strict 3-layer architecture** — Controller → Service → Repository, enforced by `docs/architecture.md` and reviewed against `CHECKPOINTS.md`
+- **Progressive disclosure** — `AGENTS.md` gives agents a map to look up rules on demand, not all at once
 
-What you will see in chat:
+## Using with Claude Code
 
-- The **leader** announces the plan, launches an `implementer`, then a `qa-reviewer`.
-- **No code passes through chat** — only references like
-  `done -> progress/impl_<feature>.md`. That is the broken-telephone rule.
+1. `./init.sh` — must finish green
+2. Open `feature_list.json` and ensure at least one feature has `status: "pending"` (add one or reopen an existing entry if all are `done`)
+3. Launch Claude Code at the repo root: `claude`
+4. Say: **"implement the next pending feature"**
 
-Where each subagent's trace lives (this is the persistent "visualization"):
+What happens:
+
+- The **leader** announces the plan, then launches an `implementer`, then a `qa-reviewer`
+- No code passes through chat — only file references like `done -> progress/impl_<feature>.md`
+
+## Progress files
 
 | File | Written by | Contains |
 |------|------------|----------|
@@ -79,11 +78,9 @@ Where each subagent's trace lives (this is the persistent "visualization"):
 | `feature_list.json` | implementer | `pending` → `in_progress` → `done` |
 | `progress/history.md` | leader | Append-only summary on session close |
 
-Open `progress/` in your editor while Claude works: each report appears
-as soon as the subagent finishes. This lets you audit step by step who decided
-what — the content does not flow through chat, it lives on disk and stays versioned.
+Open `progress/` in your editor while Claude works — each report appears as soon as a subagent finishes, and everything stays versioned.
 
-## Structure
+## Repository structure
 
 ```
 .
@@ -111,22 +108,3 @@ what — the content does not flow through chat, it lives on disk and stays vers
     ├── main/java/               # Spring Boot application (Controller/Service/Repository)
     └── test/java/               # JUnit 5 + MockMvc integration tests
 ```
-
-## What this project illustrates
-
-- **Progressive disclosure** in `AGENTS.md`: the agent does not receive all the
-  rules at once — it gets a map to look them up on demand.
-- **One feature at a time** enforced by `init.sh` (rejects more than one
-  `in_progress` in `feature_list.json`).
-- **State on disk**, not in chat: `progress/current.md` and `history.md`
-  survive restarts and blown context windows.
-- **Executable verification**: `init.sh` runs the real Maven tests, it does not trust
-  what the agent says.
-- **Leader-Worker-Reviewer pattern**: the leader does not implement, the
-  implementer does not self-approve, the reviewer does not edit code.
-- **Anti broken-telephone**: subagents write their results to files and only
-  return a lightweight reference.
-- **Strict 3-layer architecture**: Controller → Service → Repository; no business
-  logic leaks across layers, enforced by `docs/architecture.md` and reviewed by
-  the `qa-reviewer` against `CHECKPOINTS.md`.
-````
