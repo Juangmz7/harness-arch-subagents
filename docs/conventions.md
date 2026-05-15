@@ -180,6 +180,26 @@ Example:
 log.info("Creating product: name={}, category={}", product.getName(), product.getCategory());
 log.error("Failed to persist product: id={}", product.getId(), e);
 
+```java
+public ProductDTO updateStock(Long id, UpdateStockRequest request) {
+    var product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+    log.debug("Updating stock: id={}, oldStock={}, newStock={}",
+            id, product.getStock(), request.getQuantity());
+    product.setStock(request.getQuantity());
+    var saved = productRepository.save(product);
+    log.info("Updated stock: id={}, newStock={}", saved.getId(), saved.getStock());
+    return toDTO(saved);
+}
+
+private void assertNoDuplicateName(String name) {
+    if (productRepository.existsByName(name)) {
+        log.warn("Duplicate product name attempted: name={}", name);
+        throw new DuplicateProductNameException("Product with name '" + name + "' already exists");
+    }
+}
+```
+
 ## Comments
 
 Comments are forbidden by default. No Javadoc, no inline comments, unless one of these conditions is met:
