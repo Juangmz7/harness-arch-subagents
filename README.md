@@ -4,8 +4,7 @@ A minimalist e-commerce REST API in Java + Spring Boot, structured so an AI agen
 
 ## Prerequisites
 
-- Java 17+
-- Maven 3.8+ (or use the included `./mvnw` wrapper)
+- Java 21+
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (for the agentic workflow)
 - **Windows users:** run `.sh` scripts in Git Bash; use PowerShell for Maven and Git
 
@@ -30,7 +29,7 @@ If everything is green, open `AGENTS.md` and follow from there.
 ./mvnw clean compile
 ```
 
-API available at `http://localhost:8080`:
+API available at `http://localhost:8081`:
 
 ```
 GET  /api/products          # List all products
